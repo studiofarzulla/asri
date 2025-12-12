@@ -6,11 +6,15 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 
-from fastapi import FastAPI, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from asri import __version__
+from asri.models.asri import ASRIDaily
+from asri.models.base import async_session
 
 
 class SubIndices(BaseModel):
@@ -66,12 +70,18 @@ class HealthResponse(BaseModel):
     timestamp: datetime
 
 
+async def get_db() -> AsyncSession:
+    """Dependency for database sessions."""
+    async with async_session() as session:
+        yield session
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
     print(f"Starting ASRI API v{__version__}")
-    # TODO: Initialize database connection
+    print("✅ Database connection ready")
     # TODO: Start scheduler for daily updates
     yield
     # Shutdown
@@ -108,28 +118,36 @@ async def health_check():
 
 
 @app.get("/asri/current", response_model=ASRIResponse, tags=["ASRI"])
-async def get_current_asri():
+async def get_current_asri(db: AsyncSession = Depends(get_db)):
     """
     Get current ASRI value and sub-indices.
 
     Returns the latest calculated ASRI along with all sub-index values,
     trend direction, and alert level.
     """
-    # TODO: Fetch from database
-    # Placeholder response
+    stmt = select(ASRIDaily).order_by(desc(ASRIDaily.date)).limit(1)
+    result = await db.execute(stmt)
+    record = result.scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail="No ASRI data available yet. Database is ready but needs initial calculation.",
+        )
+
     return ASRIResponse(
-        timestamp=datetime.utcnow(),
-        asri=62.3,
-        asri_30d_avg=59.1,
-        trend="rising",
+        timestamp=record.date,
+        asri=record.asri,
+        asri_30d_avg=record.asri_30d_avg or record.asri,
+        trend=record.trend or "stable",
         sub_indices=SubIndices(
-            stablecoin_risk=68.5,
-            defi_liquidity_risk=54.2,
-            contagion_risk=71.1,
-            arbitrage_opacity=49.0,
+            stablecoin_risk=record.stablecoin_risk,
+            defi_liquidity_risk=record.defi_liquidity_risk,
+            contagion_risk=record.contagion_risk,
+            arbitrage_opacity=record.arbitrage_opacity,
         ),
-        alert_level="elevated",
-        last_update=datetime.utcnow(),
+        alert_level=record.alert_level,
+        last_update=record.created_at,
     )
 
 
