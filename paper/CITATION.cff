@@ -1,0 +1,63 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+type: software
+title: "ASRI: An Aggregated Systemic Risk Index for Cryptocurrency Markets"
+abstract: >
+  A unified framework for monitoring systemic risk arising from DeFi-TradFi
+  interconnection. The index comprises four weighted sub-indices: Stablecoin
+  Concentration Risk (30%), DeFi Liquidity Risk (25%), Contagion Risk (25%),
+  and Regulatory Opacity Risk (20%).
+version: 1.0.0
+date-released: 2025-12-13
+authors:
+  - family-names: Farzulla
+    given-names: Murad
+    orcid: "https://orcid.org/0009-0002-7164-8704"
+    affiliation: "Resurrexi Labs / Farzulla Research"
+    email: murad@farzulla.org
+  - family-names: Maksakov
+    given-names: Andrew
+    affiliation: "Resurrexi Labs"
+    email: andrew@resurrexi.io
+license: CC-BY-4.0
+doi: "10.5281/zenodo.17918239"
+repository-code: "https://github.com/studiofarzulla/asri"
+url: "https://resurrexi.io/asri/"
+keywords:
+  - systemic risk
+  - cryptocurrency
+  - decentralized finance
+  - DeFi
+  - stablecoin
+  - contagion risk
+  - risk monitoring
+  - financial stability
+references:
+  - type: article
+    authors:
+      - family-names: Adrian
+        given-names: Tobias
+      - family-names: Brunnermeier
+        given-names: Markus K.
+    title: "CoVaR"
+    journal: "American Economic Review"
+    year: 2016
+    volume: 106
+    issue: 7
+    doi: "10.1257/aer.20120555"
+  - type: article
+    authors:
+      - family-names: Acharya
+        given-names: Viral V.
+      - family-names: Pedersen
+        given-names: Lasse H.
+      - family-names: Philippon
+        given-names: Thomas
+      - family-names: Richardson
+        given-names: Matthew
+    title: "Measuring Systemic Risk"
+    journal: "Review of Financial Studies"
+    year: 2017
+    volume: 30
+    issue: 1
+    doi: "10.1093/rfs/hhw088"

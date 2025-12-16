@@ -1,0 +1,32 @@
+\contentsline {section}{\numberline {1}Introduction}{4}{section.1}%
+\contentsline {section}{\numberline {2}Literature Review}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Traditional Systemic Risk Measures}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Cryptocurrency Market Risk}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}DeFi-Specific Risks}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Stablecoin Risk}{6}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Existing Crypto Risk Indices}{6}{subsection.2.5}%
+\contentsline {section}{\numberline {3}ASRI Framework}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Conceptual Foundation}{6}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Weight Selection Justification}{6}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Stablecoin Concentration Risk (30\%)}{7}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}DeFi Liquidity Risk (25\%)}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Contagion Risk (25\%)}{8}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Regulatory Opacity Risk (20\%)}{8}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Aggregate ASRI Calculation}{8}{subsection.3.7}%
+\contentsline {section}{\numberline {4}Data and Implementation}{9}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Data Sources}{9}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Data Quality Framework}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Technical Architecture}{9}{subsection.4.3}%
+\contentsline {section}{\numberline {5}Proposed Validation Framework}{9}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Backtesting Strategy}{9}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Expected Validation Metrics}{10}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Sensitivity Analysis}{10}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Preliminary Analysis}{10}{section.6}%
+\contentsline {section}{\numberline {7}Discussion}{11}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Theoretical Implications}{11}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Practical Applications}{11}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Limitations}{11}{subsection.7.3}%
+\contentsline {section}{\numberline {8}Conclusion}{11}{section.8}%
+\contentsline {section}{\numberline {A}API Documentation Summary}{14}{appendix.A}%
+\contentsline {section}{\numberline {B}Sub-Index Calculation Code}{14}{appendix.B}%
+\contentsline {section}{\numberline {C}Historical Crisis Event Details}{14}{appendix.C}%

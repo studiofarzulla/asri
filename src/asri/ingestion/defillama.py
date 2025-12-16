@@ -77,14 +77,18 @@ class DeFiLlamaClient:
         stablecoins = []
         for coin in data.get("peggedAssets", []):
             circulating = coin.get("circulating", {}).get("peggedUSD", 0)
-            price = coin.get("price", 1.0)
+            raw_price = coin.get("price")
+            try:
+                price = float(raw_price) if raw_price is not None else 1.0
+            except (ValueError, TypeError):
+                price = 1.0
             stablecoins.append(
                 StablecoinData(
                     name=coin.get("name", ""),
                     symbol=coin.get("symbol", ""),
-                    circulating=circulating,
+                    circulating=float(circulating) if circulating else 0.0,
                     price=price,
-                    peg_deviation=abs(1.0 - price) if price else 0,
+                    peg_deviation=abs(1.0 - price),
                 )
             )
         return stablecoins
@@ -99,9 +103,15 @@ class DeFiLlamaClient:
 
     async def get_bridges(self) -> list[dict]:
         """Get bridge TVL data."""
-        response = await self.client.get(f"{self.BASE_URL}/bridges")
+        response = await self.client.get("https://bridges.llama.fi/bridges")
         response.raise_for_status()
         return response.json().get("bridges", [])
+
+    async def get_protocols(self) -> list[dict]:
+        """Get all protocols with TVL, category, audits, etc."""
+        response = await self.client.get(f"{self.BASE_URL}/protocols")
+        response.raise_for_status()
+        return response.json()
 
     async def get_yields(self) -> list[dict]:
         """Get yield/APY data across protocols."""

@@ -79,3 +79,7 @@ secrets/
 
 # Claude Flow metrics (auto-generated)
 .claude-flow/
+.swarm/
+
+# Generated static site (deployed to resurrexi-io repo)
+static_site/

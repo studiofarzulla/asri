@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     messari_api_key: str | None = None
     token_terminal_api_key: str | None = None
     fred_api_key: str | None = None
+    coingecko_api_key: str | None = None
 
     # Application
     environment: str = "development"

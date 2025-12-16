@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import desc, select
@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from asri import __version__
 from asri.models.asri import ASRIDaily
 from asri.models.base import async_session
+from asri.pipeline.orchestrator import ASRIOrchestrator
 
 
 class SubIndices(BaseModel):
@@ -60,6 +61,17 @@ class StressTestResponse(BaseModel):
     stressed_asri: float
     delta_asri: float
     affected_sub_indices: list[str]
+
+
+class CalculateResponse(BaseModel):
+    """Calculate response."""
+
+    status: str
+    asri: float
+    alert_level: str
+    sub_indices: SubIndices
+    db_id: int | None = None
+    message: str
 
 
 class HealthResponse(BaseModel):
@@ -118,22 +130,53 @@ async def health_check():
 
 
 @app.get("/asri/current", response_model=ASRIResponse, tags=["ASRI"])
-async def get_current_asri(db: AsyncSession = Depends(get_db)):
+async def get_current_asri(
+    calculate_if_missing: bool = Query(
+        False,
+        description="If no data exists, trigger a live calculation",
+    ),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Get current ASRI value and sub-indices.
 
     Returns the latest calculated ASRI along with all sub-index values,
     trend direction, and alert level.
+
+    Set calculate_if_missing=true to trigger a live calculation if no data exists.
     """
     stmt = select(ASRIDaily).order_by(desc(ASRIDaily.date)).limit(1)
     result = await db.execute(stmt)
     record = result.scalar_one_or_none()
 
     if not record:
-        raise HTTPException(
-            status_code=404,
-            detail="No ASRI data available yet. Database is ready but needs initial calculation.",
-        )
+        if calculate_if_missing:
+            # Trigger a live calculation
+            orchestrator = ASRIOrchestrator()
+            try:
+                calc_result = await orchestrator.calculate_and_save()
+
+                return ASRIResponse(
+                    timestamp=calc_result['timestamp'],
+                    asri=calc_result['asri'],
+                    asri_30d_avg=calc_result.get('asri_30d_avg', calc_result['asri']),
+                    trend=calc_result.get('trend', 'stable'),
+                    sub_indices=SubIndices(
+                        stablecoin_risk=calc_result['sub_indices']['stablecoin_risk'],
+                        defi_liquidity_risk=calc_result['sub_indices']['defi_liquidity_risk'],
+                        contagion_risk=calc_result['sub_indices']['contagion_risk'],
+                        arbitrage_opacity=calc_result['sub_indices']['arbitrage_opacity'],
+                    ),
+                    alert_level=calc_result['alert_level'],
+                    last_update=calc_result['timestamp'],
+                )
+            finally:
+                await orchestrator.close()
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="No ASRI data available yet. Use POST /asri/calculate or set calculate_if_missing=true.",
+            )
 
     return ASRIResponse(
         timestamp=record.date,
@@ -155,28 +198,53 @@ async def get_current_asri(db: AsyncSession = Depends(get_db)):
 async def get_timeseries(
     start: str = Query(..., description="Start date (YYYY-MM-DD)"),
     end: str = Query(..., description="End date (YYYY-MM-DD)"),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Get historical ASRI time series.
 
     Returns daily ASRI values between the specified dates.
     """
-    # TODO: Fetch from database
-    # Placeholder response
+    try:
+        start_date = datetime.strptime(start, "%Y-%m-%d")
+        end_date = datetime.strptime(end, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid date format. Use YYYY-MM-DD.",
+        )
+
+    stmt = (
+        select(ASRIDaily)
+        .where(ASRIDaily.date >= start_date)
+        .where(ASRIDaily.date <= end_date)
+        .order_by(ASRIDaily.date)
+    )
+    result = await db.execute(stmt)
+    records = result.scalars().all()
+
+    data = [
+        TimeSeriesPoint(
+            date=record.date.strftime("%Y-%m-%d"),
+            asri=record.asri,
+            sub_indices=SubIndices(
+                stablecoin_risk=record.stablecoin_risk,
+                defi_liquidity_risk=record.defi_liquidity_risk,
+                contagion_risk=record.contagion_risk,
+                arbitrage_opacity=record.arbitrage_opacity,
+            ),
+        )
+        for record in records
+    ]
+
     return TimeSeriesResponse(
-        data=[
-            TimeSeriesPoint(
-                date=start,
-                asri=45.2,
-                sub_indices=SubIndices(
-                    stablecoin_risk=50.0,
-                    defi_liquidity_risk=40.0,
-                    contagion_risk=45.0,
-                    arbitrage_opacity=42.0,
-                ),
-            )
-        ],
-        metadata={"points": 1, "frequency": "daily"},
+        data=data,
+        metadata={
+            "points": len(data),
+            "frequency": "daily",
+            "start": start,
+            "end": end,
+        },
     )
 
 
@@ -221,6 +289,54 @@ async def stress_test(
         delta_asri=16.2,
         affected_sub_indices=["stablecoin_risk", "contagion_risk"],
     )
+
+
+@app.post("/asri/calculate", response_model=CalculateResponse, tags=["ASRI"])
+async def calculate_asri(
+    save: bool = Query(True, description="Save result to database"),
+):
+    """
+    Trigger a live ASRI calculation.
+
+    Fetches data from all sources (DeFiLlama, FRED, CoinGecko, News)
+    and calculates the current ASRI value.
+
+    Set save=true to persist the result to the database.
+    """
+    orchestrator = ASRIOrchestrator()
+
+    try:
+        if save:
+            result = await orchestrator.calculate_and_save()
+            db_id = result.get('db_id')
+            message = f"ASRI calculated and saved (ID: {db_id})"
+        else:
+            result = await orchestrator.calculate_asri()
+            db_id = None
+            message = "ASRI calculated (not saved)"
+
+        return CalculateResponse(
+            status="success",
+            asri=result['asri'],
+            alert_level=result['alert_level'],
+            sub_indices=SubIndices(
+                stablecoin_risk=result['sub_indices']['stablecoin_risk'],
+                defi_liquidity_risk=result['sub_indices']['defi_liquidity_risk'],
+                contagion_risk=result['sub_indices']['contagion_risk'],
+                arbitrage_opacity=result['sub_indices']['arbitrage_opacity'],
+            ),
+            db_id=db_id,
+            message=message,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Calculation failed: {str(e)}",
+        )
+
+    finally:
+        await orchestrator.close()
 
 
 @app.get("/asri/methodology", tags=["ASRI"])

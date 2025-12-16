@@ -1,0 +1,19 @@
+[Unit]
+Description=ASRI Daily Calculation Scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=purrpower
+WorkingDirectory=/home/purrpower/Resurrexi/projects/resurrexi-projects/asri
+Environment="PATH=/home/purrpower/Resurrexi/projects/resurrexi-projects/asri/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/purrpower/Resurrexi/projects/resurrexi-projects/asri/.venv/bin/python -m asri.scheduler.daemon
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
