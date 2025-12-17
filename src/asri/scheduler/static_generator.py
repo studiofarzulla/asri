@@ -41,7 +41,7 @@ def get_risk_bar_color(value: float) -> str:
         return "#ef4444"  # red
 
 
-async def fetch_dashboard_data() -> dict:
+async def fetch_dashboard_data(max_history_days: int = 365) -> dict:
     """Fetch all data needed for dashboard."""
     async with async_session() as db:
         # Get latest record
@@ -52,11 +52,11 @@ async def fetch_dashboard_data() -> dict:
         if not latest:
             return None
 
-        # Get last 30 days for chart
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        # Get historical data (up to max_history_days or all available)
+        cutoff_date = datetime.utcnow() - timedelta(days=max_history_days)
         stmt = (
             select(ASRIDaily)
-            .where(ASRIDaily.date >= thirty_days_ago)
+            .where(ASRIDaily.date >= cutoff_date)
             .order_by(ASRIDaily.date)
         )
         result = await db.execute(stmt)
@@ -65,6 +65,7 @@ async def fetch_dashboard_data() -> dict:
         return {
             'latest': latest,
             'history': history,
+            'history_days': len(history),
         }
 
 
@@ -333,7 +334,7 @@ def generate_html(data: dict) -> str:
             </div>
 
             <div class="card">
-                <h2>30-Day Trend</h2>
+                <h2>Historical Trend ({len(history)} days)</h2>
                 <div class="chart-container">
                     <canvas id="trendChart"></canvas>
                 </div>
