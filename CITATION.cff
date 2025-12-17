@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "ASRI: Aggregated Systemic Risk Index for Cryptocurrency Markets"
+abstract: "A unified framework for monitoring systemic risk arising from DeFi-TradFi interconnection. Comprises four weighted sub-indices: Stablecoin Risk (30%), DeFi Liquidity Risk (25%), Contagion Risk (25%), and Regulatory Opacity Risk (20%)."
+authors:
+  - family-names: Farzulla
+    given-names: Murad
+    orcid: "https://orcid.org/0009-0002-7164-8704"
+    affiliation: "Farzulla Research"
+  - family-names: Maksakov
+    given-names: Andrew
+    affiliation: "Resurrexi Labs"
+version: 2.0.0
+date-released: 2025-12-17
+license: MIT
+repository-code: "https://github.com/studiofarzulla/asri"
+url: "https://resurrexi.io/asri/"
+keywords:
+  - systemic-risk
+  - cryptocurrency
+  - decentralized-finance
+  - defi
+  - stablecoin
+  - risk-monitoring
+  - financial-stability
+references:
+  - type: article
+    authors:
+      - family-names: Farzulla
+        given-names: Murad
+      - family-names: Maksakov
+        given-names: Andrew
+    title: "ASRI: An Aggregated Systemic Risk Index for Cryptocurrency Markets"
+    year: 2025
+    doi: "10.5281/zenodo.17958151"

@@ -1,12 +1,13 @@
 [project]
 name = "asri"
-version = "0.1.0"
+version = "2.0.0"
 description = "Aggregated Systemic Risk Index - Unified crypto/DeFi systemic risk monitoring"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "Resurrexi Labs", email = "contact@resurrexi.io"}
+    {name = "Murad Farzulla", email = "murad@farzulla.org"},
+    {name = "Andrew Maksakov", email = "andrew@resurrexi.io"},
 ]
 keywords = ["crypto", "defi", "risk", "systemic-risk", "finance", "analytics"]
 classifiers = [
