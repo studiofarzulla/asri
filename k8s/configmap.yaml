@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asri-config
+  namespace: asri
+data:
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  SCHEDULER_ENABLED: "true"
+  DAILY_UPDATE_HOUR: "1"
+  RATE_LIMIT_FREE: "100"
+  RATE_LIMIT_PRO: "5000"

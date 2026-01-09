@@ -83,3 +83,4 @@ secrets/
 
 # Generated static site (deployed to resurrexi-io repo)
 static_site/
+k8s/secret.yaml

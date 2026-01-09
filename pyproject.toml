@@ -33,6 +33,7 @@ dependencies = [
     "apscheduler>=3.10.0",
     "python-dotenv>=1.0.0",
     "structlog>=23.2.0",
+    "vaderSentiment>=3.3.2",
 ]
 
 [project.optional-dependencies]

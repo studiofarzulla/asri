@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: asri
+  labels:
+    app.kubernetes.io/name: asri
+    app.kubernetes.io/part-of: farzulla-research
