@@ -28,6 +28,11 @@ class StablecoinData(BaseModel):
     price: float
     peg_deviation: float
 
+    # Extended fields for algorithmic stablecoin risk (v2.1+)
+    peg_type: str | None = None  # "fiat-collateral" | "crypto-collateral" | "algorithmic"
+    backing_assets: dict[str, float] | None = None  # e.g., {"LUNA": 0.5, "USD": 0.5}
+    backing_ratio: float | None = None  # reserves / circulating (if available)
+
 
 class DeFiLlamaClient:
     """Client for DeFi Llama API."""
@@ -82,6 +87,19 @@ class DeFiLlamaClient:
                 price = float(raw_price) if raw_price is not None else 1.0
             except (ValueError, TypeError):
                 price = 1.0
+
+            # Extract peg type if available (DeFi Llama API field)
+            peg_type = coin.get("pegType")  # e.g., "peggedUSD", "peggedETH"
+            peg_mechanism = coin.get("pegMechanism")  # e.g., "fiat", "algorithmic"
+
+            # Classify based on available fields
+            if peg_mechanism:
+                classified_type = peg_mechanism
+            elif peg_type and "algo" in str(peg_type).lower():
+                classified_type = "algorithmic"
+            else:
+                classified_type = None
+
             stablecoins.append(
                 StablecoinData(
                     name=coin.get("name", ""),
@@ -89,6 +107,9 @@ class DeFiLlamaClient:
                     circulating=float(circulating) if circulating else 0.0,
                     price=price,
                     peg_deviation=abs(1.0 - price),
+                    peg_type=classified_type,
+                    backing_assets=coin.get("backing"),  # May not be available
+                    backing_ratio=coin.get("backingRatio"),  # May not be available
                 )
             )
         return stablecoins

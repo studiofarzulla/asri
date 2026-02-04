@@ -14,9 +14,13 @@ import {
   FileText,
   Github,
   RefreshCw,
+  Activity,
+  Database,
+  Shield,
+  Code,
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://asri.resurrexi.dev';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.dissensus.ai';
 
 interface SubIndices {
   stablecoin_risk: number;
@@ -44,6 +48,17 @@ interface TimeseriesPoint {
 interface TimeseriesResponse {
   data: TimeseriesPoint[];
   metadata: { points: number; frequency: string };
+}
+
+interface RegimeResponse {
+  current_regime: number;
+  regime_name: string;
+  probability: number;
+  transition_probs: {
+    to_low_risk: number;
+    stay_moderate: number;
+    to_elevated: number;
+  };
 }
 
 type SubIndexKey = keyof SubIndices;
@@ -92,6 +107,7 @@ const getAlertBadgeColor = (level: string) => {
 export default function ASRIDashboard() {
   const [current, setCurrent] = useState<CurrentASRIResponse | null>(null);
   const [timeseries, setTimeseries] = useState<TimeseriesPoint[]>([]);
+  const [regime, setRegime] = useState<RegimeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,9 +118,10 @@ export default function ASRIDashboard() {
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const [currentRes, timeseriesRes] = await Promise.all([
+      const [currentRes, timeseriesRes, regimeRes] = await Promise.all([
         fetch(`${API_URL}/asri/current`),
-        fetch(`${API_URL}/asri/timeseries?start=2024-01-01&end=2026-12-31`),
+        fetch(`${API_URL}/asri/timeseries?start=2021-01-01&end=2026-12-31`),
+        fetch(`${API_URL}/asri/regime`),
       ]);
 
       if (!currentRes.ok || !timeseriesRes.ok) {
@@ -113,9 +130,11 @@ export default function ASRIDashboard() {
 
       const currentData: CurrentASRIResponse = await currentRes.json();
       const timeseriesData: TimeseriesResponse = await timeseriesRes.json();
+      const regimeData: RegimeResponse = regimeRes.ok ? await regimeRes.json() : null;
 
       setCurrent(currentData);
       setTimeseries(timeseriesData.data);
+      setRegime(regimeData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -246,7 +265,7 @@ export default function ASRIDashboard() {
               </div>
               <div className="hidden sm:block h-8 w-px bg-zinc-800" />
               <div className="hidden sm:block">
-                <p className="text-xs text-zinc-600 uppercase tracking-wider font-medium">Farzulla Research</p>
+                <p className="text-xs text-zinc-500 tracking-wide font-medium">dissensus<sup className="text-[8px] ml-0.5">AI</sup></p>
               </div>
             </div>
 
@@ -374,6 +393,124 @@ export default function ASRIDashboard() {
           </div>
         </section>
 
+        {/* Regime Detection */}
+        {regime && (
+          <section className="bg-zinc-900/30 rounded-2xl border border-zinc-800/50 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-base font-semibold">Market Regime</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Hidden Markov Model classification</p>
+              </div>
+              <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                regime.regime_name === 'Elevated' ? 'bg-red-900/50 text-red-300 border border-red-800' :
+                regime.regime_name === 'Moderate' ? 'bg-amber-900/50 text-amber-300 border border-amber-800' :
+                'bg-emerald-900/50 text-emerald-300 border border-emerald-800'
+              }`}>
+                {regime.regime_name} ({(regime.probability * 100).toFixed(0)}%)
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
+                <div className="text-xs text-zinc-500 mb-1">→ Low Risk</div>
+                <div className="text-lg font-mono text-emerald-400">{(regime.transition_probs.to_low_risk * 100).toFixed(1)}%</div>
+              </div>
+              <div className="text-center p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
+                <div className="text-xs text-zinc-500 mb-1">→ Stay</div>
+                <div className="text-lg font-mono text-zinc-300">{(regime.transition_probs.stay_moderate * 100).toFixed(1)}%</div>
+              </div>
+              <div className="text-center p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
+                <div className="text-xs text-zinc-500 mb-1">→ Elevated</div>
+                <div className="text-lg font-mono text-red-400">{(regime.transition_probs.to_elevated * 100).toFixed(1)}%</div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* API Documentation */}
+        <section className="bg-gradient-to-br from-zinc-900/50 to-zinc-800/30 rounded-2xl border border-zinc-700/50 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-800/50">
+              <Code className="h-5 w-5 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold">Public API</h2>
+              <p className="text-xs text-zinc-500 mt-0.5">RESTful endpoints for programmatic access</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 bg-emerald-900/50 text-emerald-400 text-xs font-mono rounded">GET</span>
+                <span className="text-sm font-mono text-zinc-300">/asri/current</span>
+              </div>
+              <p className="text-xs text-zinc-500">Current ASRI value and sub-indices</p>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 bg-emerald-900/50 text-emerald-400 text-xs font-mono rounded">GET</span>
+                <span className="text-sm font-mono text-zinc-300">/asri/timeseries</span>
+              </div>
+              <p className="text-xs text-zinc-500">Historical data with date range params</p>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 bg-emerald-900/50 text-emerald-400 text-xs font-mono rounded">GET</span>
+                <span className="text-sm font-mono text-zinc-300">/asri/regime</span>
+              </div>
+              <p className="text-xs text-zinc-500">Current regime classification & transitions</p>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 bg-emerald-900/50 text-emerald-400 text-xs font-mono rounded">GET</span>
+                <span className="text-sm font-mono text-zinc-300">/asri/validation</span>
+              </div>
+              <p className="text-xs text-zinc-500">Statistical validation results</p>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 bg-emerald-900/50 text-emerald-400 text-xs font-mono rounded">GET</span>
+                <span className="text-sm font-mono text-zinc-300">/asri/export/{'{format}'}</span>
+              </div>
+              <p className="text-xs text-zinc-500">Data export (json, csv, parquet)</p>
+            </div>
+            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 bg-blue-900/50 text-blue-400 text-xs font-mono rounded">POST</span>
+                <span className="text-sm font-mono text-zinc-300">/asri/calculate</span>
+              </div>
+              <p className="text-xs text-zinc-500">Trigger live calculation (authenticated)</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between pt-4 border-t border-zinc-800/50">
+            <div className="flex items-center gap-4 text-xs text-zinc-500">
+              <div className="flex items-center gap-1.5">
+                <Database className="h-3.5 w-3.5" />
+                <span>1,461 data points</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5" />
+                <span>Daily updates 06:00 UTC</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5" />
+                <span>Rate limited</span>
+              </div>
+            </div>
+            <a
+              href="https://github.com/studiofarzulla/asri#api-reference"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              <span>Full API Docs</span>
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        </section>
+
         {/* Methodology & Links */}
         <section className="bg-zinc-900/20 rounded-2xl border border-zinc-800/30 p-6">
           <h2 className="text-sm font-semibold mb-4">Methodology & Resources</h2>
@@ -392,15 +529,15 @@ export default function ASRIDashboard() {
               <ExternalLink className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
             </a>
             <a
-              href="https://asri.resurrexi.dev/docs"
+              href="https://github.com/studiofarzulla/asri#api-reference"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3 bg-zinc-900/50 rounded-xl border border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900 transition-all group"
             >
-              <Gauge className="h-5 w-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+              <Code className="h-5 w-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100">API Documentation</p>
-                <p className="text-xs text-zinc-600 truncate">OpenAPI / Swagger</p>
+                <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100">API Reference</p>
+                <p className="text-xs text-zinc-600 truncate">Endpoints & Usage</p>
               </div>
               <ExternalLink className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
             </a>
@@ -427,11 +564,13 @@ export default function ASRIDashboard() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-600">
             <div className="flex items-center gap-2">
               <span>© {new Date().getFullYear()}</span>
+              <a href="https://dissensus.ai" className="text-zinc-400 hover:text-zinc-200 transition-colors">
+                Dissensus AI
+              </a>
+              <span>·</span>
               <a href="https://farzulla.org" className="text-zinc-400 hover:text-zinc-200 transition-colors">
                 Farzulla Research
               </a>
-              <span>·</span>
-              <span>Farzulla & Maksakov</span>
             </div>
             <div className="flex items-center gap-4">
               {current && (

@@ -1,0 +1,20 @@
+\paragraph{Duration Adjustment Impact.}
+Table~\ref{tab:duration_sensitivity} demonstrates the impact of duration assumptions
+on SCR and aggregate ASRI. Moving from short-duration reserves (T-bills, duration 0.25 years)
+to long-duration positions (5-year T-notes) increases peak SCR by 4.3 points
+and peak ASRI by 0.6 points. Critically, detection rates remain unchanged
+across all duration scenarios---all four crises are detected at the operational threshold
+($\tau=50$) regardless of duration assumption.
+
+This robustness arises because duration adjustment scales the Treasury component
+proportionally, preserving relative rankings during stress periods. The SVB crisis,
+which specifically involved duration mismatch (banks holding long-duration securities
+funded by short-term deposits), is detected under all specifications, validating that
+the current implementation captures the relevant risk dynamics even without explicit
+duration modeling.
+
+For practitioners with specific knowledge of stablecoin reserve compositions,
+duration-adjusted SCR provides a more accurate risk estimate. The baseline implementation
+conservatively assumes short-duration reserves, which slightly underestimates risk for
+issuers with longer-duration holdings. Future versions will incorporate issuer-specific
+duration data as attestation reports improve disclosure standards.

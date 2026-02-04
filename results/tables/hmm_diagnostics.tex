@@ -1,0 +1,37 @@
+\begin{table}[H]
+\centering
+\caption{Hidden Markov Model Diagnostics}
+\label{tab:hmm_diagnostics}
+\small
+\begin{tabular}{lcc}
+\toprule
+Diagnostic & Value & Interpretation \\
+\midrule
+\multicolumn{3}{l}{\textit{Model Selection}} \\
+Number of regimes & 3 & Optimal via BIC comparison \\
+Log-likelihood & -21631.8 & Converged value \\
+AIC & 43363.6 & Preferred over 2-state \\
+BIC & 43639.5 & Preferred over 4-state \\
+\midrule
+\multicolumn{3}{l}{\textit{Regime Properties}} \\
+Regime 1 (Low Risk) mean & 35.5 & Below threshold (50) \\
+Regime 1 frequency & 46.9% & Sample proportion \\
+Regime 1 persistence & 0.984 & $P(s_{t+1}=s_t \mid s_t=1)$ \\
+Regime 2 (Moderate) mean & 40.9 & Below threshold (50) \\
+Regime 2 frequency & 32.5% & Sample proportion \\
+Regime 2 persistence & 0.972 & $P(s_{t+1}=s_t \mid s_t=2)$ \\
+Regime 3 (Crisis) mean & 41.3 & Below threshold (50) \\
+Regime 3 frequency & 20.5% & Sample proportion \\
+Regime 3 persistence & 0.980 & $P(s_{t+1}=s_t \mid s_t=3)$ \\
+\midrule
+\multicolumn{3}{l}{\textit{Long-Run Behavior}} \\
+Ergodic distribution & [0.49, 0.33, 0.18] & Stationary regime probabilities \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item HMM fitted with Gaussian emissions and full covariance matrices.
+\item Convergence criterion: $|\Delta \log L| < 10^{-4}$.
+\item Regime means computed as average of sub-index means within each state.
+\end{tablenotes}
+\end{table}

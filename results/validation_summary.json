@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-01-29T00:39:24.314197",
+  "n_observations": 1461,
+  "date_range": [
+    "2021-01-01",
+    "2024-12-31"
+  ],
+  "stationarity_conclusions": {
+    "stablecoin_risk": "trend_stationary",
+    "defi_liquidity_risk": "stationary",
+    "contagion_risk": "trend_stationary",
+    "arbitrage_opacity": "stationary",
+    "asri": "stationary"
+  },
+  "all_stationary": false,
+  "n_events": 4,
+  "n_significant_events": 4,
+  "avg_lead_days": 40.0,
+  "avg_t_statistic": 15.144815239275358,
+  "svb_t_statistic": 34.539722109086405,
+  "wf_mean_r2": -13808.733857447276,
+  "wf_std_r2": 10994.87874677719,
+  "wf_n_folds": 5,
+  "oos_r2": -21811.822334057735,
+  "oos_mse": 1547.1512285520184,
+  "oos_train_period": "2021-01 to 2023-12",
+  "oos_test_period": "2024-01 to 2024-12",
+  "n_robust_components": 0,
+  "optimal_threshold": 60,
+  "optimal_window": 90,
+  "validation_passed": "False",
+  "notes": [
+    "SVB t-statistic (34.54) is unusually high - see investigation",
+    "Some series may be non-stationary - consider differencing",
+    "Only 0/4 components are robust to weight perturbations"
+  ]
+}

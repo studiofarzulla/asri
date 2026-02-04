@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\centering
+\caption{Forward Window Sensitivity Analysis}
+\label{tab:forward_window_sensitivity}
+\small
+\begin{tabular}{cccccc}
+\toprule
+Window (days) & AUC-ROC & Lead Time & Precision & Recall & F1 \\
+\midrule
+14 & 0.512 & 0.1 & 0.900 & 0.037 & 0.071 \\
+30 & 0.623 & 1.0 & 1.000 & 0.021 & 0.041 \\
+60 & 0.782 & 11.7 & 1.000 & 0.015 & 0.030 \\
+90* & 0.889 & 0.0 & 1.000 & 0.015 & 0.029 \\
+\midrule
+\multicolumn{6}{l}{Optimal window: 90 days (AUC = 0.889)} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item * indicates optimal window maximizing AUC-ROC.
+\item Lead time = average days before crisis ASRI exceeded threshold.
+\end{tablenotes}
+\end{table}

@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\caption{Hold-One-Out Cross-Validation Results}
+\label{tab:holdout}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Held-Out Crisis & \multicolumn{2}{c}{Derived Weights} & \multicolumn{2}{c}{Theoretical} & Match \\
+ & Peak & Lead (d) & Peak & Lead (d) & \\
+\midrule
+Terra/Luna & 49.2 & 0 & 47.8 & 0 & \checkmark \\
+Celsius/3AC & 70.8 & 16 & 68.7 & 8 & \checkmark \\
+FTX & 83.8 & 15 & 81.1 & 4 & \checkmark \\
+SVB & 73.2 & 13 & 70.0 & 8 & \checkmark \\
+\midrule
+Detection Rate & \multicolumn{2}{c}{3/4} & \multicolumn{2}{c}{3/4} & \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Derived weights optimized on 3 training crises, tested blind on held-out.
+\item Peak values and lead times measured in 60-day pre-crisis windows.
+\item Detection threshold: ASRI $\geq$ 50.
+\end{tablenotes}
+\end{table}

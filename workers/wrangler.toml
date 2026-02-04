@@ -1,0 +1,16 @@
+name = "asri-api"
+main = "src/main.py"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["python_workers"]
+
+[vars]
+ENVIRONMENT = "production"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "asri-db"
+database_id = "f8c08c15-a596-4d7f-8c00-0f7592da26f4"
+
+# Custom domain configured via zone-level worker routes:
+# api.dissensus.ai/* -> asri-api

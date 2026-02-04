@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\caption{Robustness Tests}
+\label{tab:robustness}
+\small
+\begin{tabular}{llccl}
+\toprule
+Test & Original & Placebo Mean & $p$-value & Result \\
+\midrule
+Date Shuffle & 0.187 & 0.064 $\pm$ 0.122 & 0.1544 & $\times$ \\
+\midrule
+\multicolumn{5}{l}{\textbf{Structural Break Test}} \\
+Method: CUSUM & Stat: 4.715 & Crit: 1.360 & -- & 32 break(s) \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \checkmark = ASRI signal is genuine; $\times$ = potential concern
+\item Placebo tests use 1000 permutations.
+\end{tablenotes}
+\end{table}

@@ -1,0 +1,26 @@
+\begin{table}[H]
+\centering
+\caption{ASRI Uncertainty Band Statistics}
+\label{tab:uncertainty_bands}
+\small
+\begin{tabular}{lcc}
+\toprule
+Statistic & Value & Interpretation \\
+\midrule
+Average band width & 12.4 pts & Typical uncertainty \\
+Maximum band width & 13.6 pts & Highest uncertainty period \\
+Minimum band width & 11.6 pts & Lowest uncertainty period \\
+\midrule
+\multicolumn{3}{l}{\textit{Component Confidence (Average)}} \\
+Stablecoin Risk & 90% & High (reliable data) \\
+Defi Liquidity Risk & 85% & High (reliable data) \\
+Contagion Risk & 70% & Medium (some proxies) \\
+Arbitrage Opacity & 50% & Low (placeholder/proxy) \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Bands widen when data quality is low (stale data, placeholders).
+\item Operational implication: Alerts within bands require confirmation.
+\end{tablenotes}
+\end{table}

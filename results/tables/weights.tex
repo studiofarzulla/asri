@@ -1,0 +1,24 @@
+\begin{table}[htbp]
+\centering
+\caption{Weight Derivation: Theoretical vs. Empirical}
+\label{tab:weights}
+\small
+\begin{tabular}{lccc}
+\toprule
+Component & Theoretical & PCA & Elastic Net \\
+\midrule
+Stablecoin Risk & 0.300 & 0.176 & 0.100 \\
+Defi Liquidity Risk & 0.250 & 0.140 & 0.137 \\
+Contagion Risk & 0.250 & 0.362 & 0.571 \\
+Arbitrage Opacity & 0.200 & 0.322 & 0.192 \\
+\midrule
+\multicolumn{4}{l}{\textit{PCA: PC1 explains 30.9% of variance}} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Theoretical weights from risk-based framework.
+\item PCA weights from first principal component loadings.
+\item Elastic Net weights from predictive regression on forward drawdowns.
+\end{tablenotes}
+\end{table}

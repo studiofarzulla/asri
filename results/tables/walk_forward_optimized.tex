@@ -1,0 +1,24 @@
+\begin{table}[htbp]
+\centering
+\caption{Walk-Forward Validation Results}
+\label{tab:walk_forward}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Fold & Train Period & Test Period & Train $R^2$ & Test $R^2$ & Test AUC \\
+\midrule
+1 & 2021-01 -- 2024-05 & 2024-06 -- 2024-12 & -16696.162 & 0.000 & -- \\
+2 & 2021-01 -- 2023-10 & 2023-11 -- 2024-06 & -14550.322 & -43820.300 & -- \\
+3 & 2021-01 -- 2023-03 & 2023-04 -- 2023-11 & -12219.099 & -18240.213 & -- \\
+4 & 2021-01 -- 2022-08 & 2022-09 -- 2023-04 & -15732.347 & -10295.813 & -- \\
+5 & 2021-01 -- 2022-01 & 2022-02 -- 2022-09 & -12288.477 & -9174.059 & -- \\
+\midrule
+\textbf{Mean} & -- & -- & -- & \textbf{-16306.077} $\pm$ 14924.145 & \textbf{--} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Weight stability (avg pairwise correlation): 0.787
+\item Purge gap: 30 days between train and test.
+\end{tablenotes}
+\end{table}

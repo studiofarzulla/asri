@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\caption{Detection Method Comparison: Confusion Summary}
+\label{tab:confusion_summary}
+\small
+\begin{tabular}{lccc}
+\toprule
+Method & True Positives & False Negatives & Recall \\
+\midrule
+Threshold (τ=50) & 3/4 & 1/4 & 75% \\
+Event Study (p<0.01) & 4/4 & 0/4 & 100% \\
+Walk-Forward OOS & 4/4 & 0/4 & 100% \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Recall = TP / (TP + FN). All methods tested on 4 historical crisis events.
+\item Terra/Luna (May 2022) peak of 48.7 falls short of $\tau$=50 threshold but
+\item exhibits highly significant event study deviation ($t=5.47$, $p<0.001$).
+\end{tablenotes}
+\end{table}

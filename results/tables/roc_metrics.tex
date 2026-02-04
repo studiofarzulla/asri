@@ -1,0 +1,28 @@
+\begin{table}[H]
+\begin{threeparttable}
+\centering
+\caption{Crisis Prediction Classification Metrics with 95\% Bootstrap Confidence Intervals}
+\label{tab:roc_metrics}
+\small
+\begin{tabular}{lccc}
+\toprule
+Metric & ASRI & D-Y Connectedness & Difference \\
+\midrule
+AUROC & 0.918 [0.890, 0.937] & 0.805 [0.761, 0.837] & +0.114 \\
+AUPRC & 0.669 [0.592, 0.740] & 0.353 [0.286, 0.427] & +0.315 \\
+\midrule
+Optimal Threshold & 47.8 & 0.39 & --- \\
+Precision @ Optimal & 0.393 & 0.287 & +0.106 \\
+Recall @ Optimal & 0.842 & 0.675 & +0.167 \\
+F1 @ Optimal & 0.536 & 0.403 & +0.133 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item $n = 1100$ observations; 120 crisis-imminent days, 980 non-crisis days.
+\item Bootstrap confidence intervals computed with $B = 1000$ resamples (BCa method).
+\item Crisis defined as 30-day forward period preceding historical crisis onset.
+\item Optimal threshold selected by Youden's J statistic (maximizes TPR $-$ FPR).
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

@@ -1,0 +1,24 @@
+\begin{table}[htbp]
+\centering
+\caption{Aggregation Method Comparison: Linear vs CISS}
+\label{tab:aggregation}
+\small
+\begin{tabular}{lcc}
+\toprule
+Metric & Linear & CISS \\
+\midrule
+Mean & 40.8 & 55.6 \\
+Std & 10.9 & 20.1 \\
+Min & 14.2 & 14.2 \\
+Max & 74.6 & 100.0 \\
+\midrule
+Pearson correlation & \multicolumn{2}{c}{0.684} \\
+Spearman correlation & \multicolumn{2}{c}{0.698} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item CISS uses EWMA covariance (decay = 0.94).
+\item Linear method preferred for parsimony.
+\end{tablenotes}
+\end{table}

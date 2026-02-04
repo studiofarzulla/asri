@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\centering
+\caption{Unit Root and Stationarity Tests}
+\label{tab:stationarity}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Variable & ADF Stat & ADF $p$ & KPSS Stat & KPSS $p$ & Conclusion \\
+\midrule
+stablecoin_risk & -3.764*** & 0.003 & 1.126** & 0.010 & TS \\
+defi_liquidity_risk & -4.337*** & 0.000 & 0.114 & 0.100 & I(0) \\
+contagion_risk & -3.708*** & 0.004 & 0.892** & 0.010 & TS \\
+arbitrage_opacity & -4.333*** & 0.000 & 0.447* & 0.057 & I(0) \\
+asri & -5.222*** & 0.000 & 0.311 & 0.100 & I(0) \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: ADF null hypothesis: unit root (non-stationary). KPSS null: stationary.
+\item I(0) = stationary, I(1) = integrated order 1, TS = trend-stationary.
+\item *** $p<0.01$, ** $p<0.05$, * $p<0.10$
+\end{tablenotes}
+\end{table}

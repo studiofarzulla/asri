@@ -84,3 +84,17 @@ secrets/
 # Generated static site (deployed to resurrexi-io repo)
 static_site/
 k8s/secret.yaml
+
+# Tool artifacts
+CLAUDE.md
+**/CLAUDE.md
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.synctex.gz

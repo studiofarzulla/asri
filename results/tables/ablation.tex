@@ -1,0 +1,28 @@
+\begin{table}[H]
+\begin{threeparttable}
+\centering
+\caption{Sub-Index Ablation Analysis (Leave-One-Out)}
+\label{tab:ablation}
+\small
+\begin{tabular}{@{}lcccr@{}}
+\toprule
+Excluded & Weights & Detection & Lead Time & $\Delta$ Lead \\
+Component & (renormalized) & Rate & (days) & (days) \\
+\midrule
+\textbf{None (baseline)} & 30/25/25/20 & 3/4 & 18 & --- \\
+-- SCR & 0/36/36/29 & 3/4 & 22 & +4 \\
+-- DLR & 40/0/33/27 & 3/4 & 17 & $-$1 \\
+-- CR & 40/33/0/27 & 3/4 & 12 & $-$5 \\
+-- OR & 37/31/31/0 & 3/4 & 23 & +5 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Detection threshold: ASRI $\geq 50$ (Elevated) within 30-day pre-crisis window.
+\item Weights format: SCR/DLR/CR/OR as percentages.
+\item Lead time = days between first threshold breach and crisis onset.
+\item $\Delta$ Lead = change from baseline (positive indicates later detection).
+\item Terra/Luna not detected in any configuration (peak ASRI = 46.0).
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

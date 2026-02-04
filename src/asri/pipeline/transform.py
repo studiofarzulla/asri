@@ -12,6 +12,12 @@ from typing import Any
 import numpy as np
 import structlog
 
+from asri.signals.algorithmic_stablecoin import (
+    AlgorithmicStablecoinRiskResult,
+    calculate_algorithmic_stablecoin_risk,
+    adjust_scr_for_algorithmic_risk,
+)
+
 logger = structlog.get_logger()
 
 
@@ -22,6 +28,10 @@ class StablecoinRiskInputs:
     treasury_stress: float  # normalized treasury rate stress
     concentration_hhi: float  # Herfindahl-Hirschman Index (0-10000 normalized)
     peg_volatility: float  # weighted average peg deviation
+
+    # Algorithmic stablecoin risk extension (v2.1+)
+    algo_stablecoin_risk: float = 0.0  # 0-100 scale
+    algo_stablecoin_weight: float = 0.0  # share of total stablecoin supply
 
 
 @dataclass
@@ -130,8 +140,18 @@ class DataTransformer:
         current_tvl: float,
         max_historical_tvl: float,
         treasury_10y_rate: float,
+        backing_token_data: dict[str, dict] | None = None,
     ) -> StablecoinRiskInputs:
-        """Transform raw data into stablecoin risk inputs."""
+        """Transform raw data into stablecoin risk inputs.
+
+        Args:
+            stablecoins: List of StablecoinData objects
+            current_tvl: Current total DeFi TVL
+            max_historical_tvl: Maximum historical TVL for normalization
+            treasury_10y_rate: 10Y Treasury yield
+            backing_token_data: Optional dict mapping backing tokens (e.g., "LUNA")
+                to their metrics: {"volatility_30d": float, "supply_growth_30d": float}
+        """
 
         # TVL ratio (higher ratio = lower risk, invert for risk score)
         tvl_ratio = current_tvl / max_historical_tvl if max_historical_tvl > 0 else 0.5
@@ -162,6 +182,12 @@ class DataTransformer:
         else:
             peg_volatility = 50.0
 
+        # Algorithmic stablecoin risk (v2.1 extension for Terra/Luna-type risks)
+        algo_risk_result = calculate_algorithmic_stablecoin_risk(
+            stablecoins=stablecoins,
+            backing_token_data=backing_token_data,
+        )
+
         self.logger.info(
             "Transformed stablecoin risk",
             tvl_risk=tvl_risk,
@@ -169,6 +195,8 @@ class DataTransformer:
             concentration_risk=concentration_risk,
             peg_volatility=peg_volatility,
             hhi=hhi,
+            algo_stablecoin_risk=algo_risk_result.algo_stablecoin_risk,
+            algo_stablecoin_weight=algo_risk_result.algo_stablecoin_weight,
         )
 
         return StablecoinRiskInputs(
@@ -176,6 +204,8 @@ class DataTransformer:
             treasury_stress=treasury_stress,
             concentration_hhi=concentration_risk,
             peg_volatility=peg_volatility,
+            algo_stablecoin_risk=algo_risk_result.algo_stablecoin_risk,
+            algo_stablecoin_weight=algo_risk_result.algo_stablecoin_weight,
         )
 
     def transform_defi_liquidity_risk(
@@ -399,11 +429,17 @@ def transform_all_data(
     tvl_history: list[float] | None = None,
     crypto_equity_corr: float = 0.5,
     regulatory_sentiment: float = 50.0,
+    backing_token_data: dict[str, dict] | None = None,
 ) -> TransformedData:
     """
     Transform all raw data into ASRI inputs.
 
     This is the main entry point for the transform layer.
+
+    Args:
+        backing_token_data: Optional dict for algorithmic stablecoin risk.
+            Maps backing token symbols (e.g., "LUNA") to their metrics:
+            {"volatility_30d": float, "supply_growth_30d": float}
     """
     transformer = DataTransformer()
 
@@ -412,6 +448,7 @@ def transform_all_data(
         current_tvl=current_tvl,
         max_historical_tvl=max_historical_tvl,
         treasury_10y_rate=treasury_10y_rate,
+        backing_token_data=backing_token_data,
     )
 
     defi_inputs = transformer.transform_defi_liquidity_risk(

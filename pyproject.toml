@@ -50,6 +50,21 @@ scraping = [
     "selenium>=4.15.0",
     "playwright>=1.40.0",
 ]
+statistics = [
+    "statsmodels>=0.14.0",
+    "scipy>=1.11.0",
+    "scikit-learn>=1.3.0",
+    "copulae>=0.7.0",
+]
+publication = [
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "plotly>=5.18.0",
+    "jinja2>=3.1.0",
+]
+all = [
+    "asri[dev,scraping,statistics,publication]",
+]
 
 [project.urls]
 Homepage = "https://resurrexi.io"

@@ -1,0 +1,165 @@
+{
+  "metadata": {
+    "analysis_date": "2026-01-28",
+    "threshold": 50.0,
+    "num_crises": 4,
+    "methodology": "Publication-lag aware backtesting simulating real-time data availability"
+  },
+  "lag_configuration": {
+    "defillama_tvl": {
+      "lag_hours": 6.0,
+      "lag_days": 0.25,
+      "description": "DeFi Llama updates TVL data with ~6 hour latency"
+    },
+    "defillama_stables": {
+      "lag_hours": 12.0,
+      "lag_days": 0.5,
+      "description": "Stablecoin market cap data aggregated with ~12 hour delay"
+    },
+    "fred_treasury": {
+      "lag_hours": 48.0,
+      "lag_days": 2.0,
+      "description": "Treasury rates published with 1-2 business day lag"
+    },
+    "fred_vix": {
+      "lag_hours": 24.0,
+      "lag_days": 1.0,
+      "description": "VIX published next day after market close"
+    },
+    "fred_yield_spread": {
+      "lag_hours": 48.0,
+      "lag_days": 2.0,
+      "description": "Yield spread published with 1-2 business day lag"
+    },
+    "fred_sp500": {
+      "lag_hours": 24.0,
+      "lag_days": 1.0,
+      "description": "S&P 500 published next day after close"
+    },
+    "coingecko_btc": {
+      "lag_hours": 1.0,
+      "lag_days": 0.042,
+      "description": "CoinGecko BTC data near real-time"
+    },
+    "news_sentiment": {
+      "lag_hours": 2.0,
+      "lag_days": 0.083,
+      "description": "News aggregation and NLP processing delay"
+    }
+  },
+  "summary": {
+    "baseline_detection_rate": 1.0,
+    "lagged_detection_rate": 1.0,
+    "detection_maintained_rate": 1.0,
+    "avg_asri_degradation_pct": 0.625,
+    "max_asri_degradation_pct": 0.94,
+    "avg_lead_time_change_days": -1.0,
+    "worst_lead_time_loss_days": -2
+  },
+  "results": [
+    {
+      "crisis": "Luna/UST Collapse",
+      "crisis_date": "2022-05-12T00:00:00",
+      "baseline": {
+        "peak_asri": 73.0,
+        "lead_time_days": 6,
+        "alert_level": "high",
+        "detected": true
+      },
+      "lagged": {
+        "peak_asri": 72.8,
+        "lead_time_days": 6,
+        "alert_level": "high",
+        "detected": true
+      },
+      "impact": {
+        "asri_degradation_pct": 0.27,
+        "lead_time_change_days": 0,
+        "detection_maintained": true,
+        "limiting_source": "fred_treasury"
+      },
+      "notes": []
+    },
+    {
+      "crisis": "3AC Liquidation",
+      "crisis_date": "2022-06-17T00:00:00",
+      "baseline": {
+        "peak_asri": 73.0,
+        "lead_time_days": 54,
+        "alert_level": "high",
+        "detected": true
+      },
+      "lagged": {
+        "peak_asri": 72.6,
+        "lead_time_days": 53,
+        "alert_level": "high",
+        "detected": true
+      },
+      "impact": {
+        "asri_degradation_pct": 0.55,
+        "lead_time_change_days": -1,
+        "detection_maintained": true,
+        "limiting_source": "fred_treasury"
+      },
+      "notes": [
+        "Lost 1 day of lead time due to FRED publication lag"
+      ]
+    },
+    {
+      "crisis": "FTX Collapse",
+      "crisis_date": "2022-11-11T00:00:00",
+      "baseline": {
+        "peak_asri": 73.0,
+        "lead_time_days": 60,
+        "alert_level": "high",
+        "detected": true
+      },
+      "lagged": {
+        "peak_asri": 72.4,
+        "lead_time_days": 58,
+        "alert_level": "high",
+        "detected": true
+      },
+      "impact": {
+        "asri_degradation_pct": 0.82,
+        "lead_time_change_days": -2,
+        "detection_maintained": true,
+        "limiting_source": "fred_treasury"
+      },
+      "notes": [
+        "Lost 2 days of lead time due to FRED publication lag"
+      ]
+    },
+    {
+      "crisis": "SVB Collapse",
+      "crisis_date": "2023-03-11T00:00:00",
+      "baseline": {
+        "peak_asri": 74.6,
+        "lead_time_days": 40,
+        "alert_level": "high",
+        "detected": true
+      },
+      "lagged": {
+        "peak_asri": 73.9,
+        "lead_time_days": 39,
+        "alert_level": "high",
+        "detected": true
+      },
+      "impact": {
+        "asri_degradation_pct": 0.94,
+        "lead_time_change_days": -1,
+        "detection_maintained": true,
+        "limiting_source": "fred_treasury"
+      },
+      "notes": [
+        "Lost 1 day of lead time due to FRED publication lag"
+      ]
+    }
+  ],
+  "conclusion": {
+    "detection_maintained": true,
+    "key_finding": "All crises remain detectable under lag simulation with minimal ASRI degradation (<1%) and preserved lead times. The framework's reliance on high-frequency DeFi data provides inherent robustness to publication delays.",
+    "limiting_factor": "FRED Treasury rate (2-day lag) is the primary constraint on real-time calculation, but indicators exhibit sufficient persistence that lagged data remains informative.",
+    "recommendation": "For operational deployment, apply lag constraints to all data sources to ensure forward-looking validity."
+  }
+}

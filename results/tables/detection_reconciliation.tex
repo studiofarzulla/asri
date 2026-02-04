@@ -1,0 +1,15 @@
+\paragraph{Reconciling Detection Rate Discrepancies.}
+The apparent discrepancy between threshold-based detection (3/4 events) and event study
+significance (4/4 events) reflects methodological differences rather than inconsistent data.
+The Terra/Luna collapse peak of 48.7 falls below the operational threshold
+of 50 but exhibits highly significant abnormal elevation ($t = 5.47$,
+$p < 0.001$), indicating that ASRI detected \textit{some} stress buildup even though the
+level remained below the alert threshold. This pattern is consistent with algorithmic
+stablecoin risks being partially observable through market-based indicators but not fully
+captured by TVL and correlation dynamics alone.
+
+For operational purposes, practitioners should interpret ASRI $\geq 50$ as \textit{actionable
+alerts} while recognizing that statistically significant deviations below this threshold
+(as in Terra/Luna) warrant heightened monitoring. The walk-forward validation achieves 4/4
+detection because out-of-sample thresholds are calibrated relative to pre-crisis baselines,
+which were lower during early 2022 than the fixed operational threshold.

@@ -1,0 +1,21 @@
+{
+  "event_date": "2023-03-11T00:00:00",
+  "hypothesis_tests": [],
+  "data_points_in_window": 121,
+  "missing_data_pct": 0.0,
+  "Terra/Luna_est_std": 8.5775491028678,
+  "Celsius/3AC_est_std": 14.87883213085315,
+  "FTX Collapse_est_std": 7.705679167679412,
+  "SVB Crisis_est_std": 4.009223539290346,
+  "svb_estimation_std": 4.009223539290346,
+  "overall_asri_std": 10.863033206502694,
+  "std_ratio": 0.369070356600806,
+  "svb_peak_asri": 64.87164102257181,
+  "svb_asri_change": 28.286952794912096,
+  "svb_z_score": 7.055469099614994,
+  "svb_stablecoin_peak": 72.75083212748397,
+  "hypotheses": [
+    "Low estimation window variance inflates t-statistic (classic statistical artifact)",
+    "Genuine extreme signal: SVB caused outsized ASRI spike due to USDC depeg cascading through stablecoin component"
+  ]
+}

@@ -1,0 +1,24 @@
+\begin{table}[H]
+\centering
+\caption{SCR Sensitivity to Duration Adjustment}
+\label{tab:duration_sensitivity}
+\small
+\begin{tabular}{lccccccc}
+\toprule
+Scenario & Duration & SCR Mean & SCR Max & ASRI Mean & ASRI Max & Detection \\
+\midrule
+Short-only (T-bills) & 0.25y & 35.5 & 78.2 & 38.4 & 81.1 & 3/4 \\
+Mixed (baseline) & 0.50y & 35.9 & 78.3 & 38.5 & 81.1 & 3/4 \\
+Moderate (1-year) & 1.00y & 36.7 & 78.5 & 38.7 & 81.1 & 3/4 \\
+Extended (2-year) & 2.00y & 38.3 & 78.9 & 39.2 & 81.3 & 3/4 \\
+Long (5-year) & 5.00y & 42.2 & 82.5 & 40.4 & 81.6 & 3/4 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Duration measured in years; T-bills $\approx$ 0.25y, T-notes $\approx$ 2--5y.
+\item Detection = crises detected at $\tau=50$ threshold (of 4 total).
+\item Duration adjustment: risk $\propto$ (1 + 0.20 $\times$ duration).
+\item Baseline implementation uses short-duration assumption (T-bills).
+\end{tablenotes}
+\end{table}

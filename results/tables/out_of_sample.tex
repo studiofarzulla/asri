@@ -1,0 +1,22 @@
+\begin{table}[htbp]
+\centering
+\caption{Out-of-Sample Validation Results}
+\label{tab:oos}
+\small
+\begin{tabular}{lcc}
+\toprule
+Metric & Training & Test \\
+\midrule
+Period & 2021-01 to 2023-12 & 2024-01 to 2024-12 \\
+Observations & 1065 & 336 \\
+$R^2$ & -11354.335 & -21811.822 \\
+Spearman $\rho$ & 0.580 & 0.455 \\
+MSE & -- & 1547.1512 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Training on 2021--2023, testing on 2024 data.
+\item No data leakage: 30-day purge gap enforced.
+\end{tablenotes}
+\end{table}

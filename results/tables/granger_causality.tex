@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\caption{Granger Causality Tests and Implied Weights}
+\label{tab:granger}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Component & F-stat & 569Xlvalue & Granger $ & Theoretical $ \\
+\midrule
+Stablecoin Risk & 6.38** & 0.0117 & 0.36 & 0.30 \\
+DeFi Liquidity & 5.89** & 0.0154 & 0.33 & 0.25 \\
+Contagion Risk & 2.58 & 0.1084 & 0.14 & 0.25 \\
+Arb. Opacity & 3.08* & 0.0797 & 0.17 & 0.20 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Optimal lag: 1 (BIC criterion).
+\item *** <0.01$, ** <0.05$, * <0.10$
+\end{tablenotes}
+\end{table}

@@ -1,0 +1,24 @@
+\begin{table}[htbp]
+\centering
+\caption{Weight Sensitivity Analysis: ASRI Component Perturbations}
+\label{tab:weight_sensitivity}
+\small
+\begin{tabular}{lccccccc}
+\toprule
+Component & Base $w$ & $-15\%$ & $-5\%$ & Base & $+5\%$ & $+15\%$ & Robust \\
+\midrule
+Stablecoin Risk & 0.30 & 0.50 & 0.50 & 0.25 & 0.25 & 0.25 & $\times$ \\
+Defi Liquidity Risk & 0.25 & 0.50 & 0.25 & 0.25 & 0.25 & 0.25 & $\times$ \\
+Contagion Risk & 0.25 & 0.25 & 0.25 & 0.25 & 0.50 & 0.75 & $\times$ \\
+Arbitrage Opacity & 0.20 & 1.00 & 0.50 & 0.25 & 0.25 & 0.00 & $\times$ \\
+\midrule
+\multicolumn{8}{l}{Robust components: 0/4} \\
+\multicolumn{8}{l}{Average detection rate variation: 0.500} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Values show crisis detection rate at each perturbation level.
+\item Robust = detection rate varies $<15\%$ across perturbations.
+\end{tablenotes}
+\end{table}

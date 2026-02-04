@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\caption{Walk-Forward Validation with Binary Crisis Target}
+\label{tab:walk_forward_proper}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Fold & $n_{\text{test}}$ & Crises & Detection & Spearman $\rho$ & AUC-ROC \\
+\midrule
+2021 → 2022-H1 & 181 & 2 & 1/2 & 0.365*** & 0.724 \\
+2021-22H1 → 2022-H2 & 184 & 1 & 1/1 & 0.309*** & 0.742 \\
+2021-22 → 2023 & 365 & 1 & 1/1 & 0.383*** & 0.903 \\
+2021-23 → 2024 & 366 & 0 & -- & 0.000 & -- \\
+2021-24 → 2025 & 365 & 0 & -- & 0.000 & -- \\
+\midrule
+Mean & -- & -- & 3/4 & 0.353 & 0.790 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Expanding window validation: train on earlier data, test on later.
+\item Target: binary indicator of crisis in next 30 days.
+\item *** $p<0.01$, ** $p<0.05$, * $p<0.10$
+\end{tablenotes}
+\end{table}
