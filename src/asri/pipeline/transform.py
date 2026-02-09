@@ -6,7 +6,7 @@ into normalized sub-index inputs (0-100 scale).
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import numpy as np
@@ -24,7 +24,7 @@ logger = structlog.get_logger()
 @dataclass
 class StablecoinRiskInputs:
     """Inputs for Stablecoin Concentration & Treasury Exposure sub-index."""
-    tvl_ratio: float  # current_tvl / max_historical_tvl
+    tvl_risk: float  # TVL drawdown risk score (0-100)
     treasury_stress: float  # normalized treasury rate stress
     concentration_hhi: float  # Herfindahl-Hirschman Index (0-10000 normalized)
     peg_volatility: float  # weighted average peg deviation
@@ -200,7 +200,7 @@ class DataTransformer:
         )
 
         return StablecoinRiskInputs(
-            tvl_ratio=tvl_risk,
+            tvl_risk=tvl_risk,
             treasury_stress=treasury_stress,
             concentration_hhi=concentration_risk,
             peg_volatility=peg_volatility,
@@ -472,7 +472,7 @@ def transform_all_data(
     )
 
     return TransformedData(
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         stablecoin_risk=stablecoin_inputs,
         defi_liquidity_risk=defi_inputs,
         contagion_risk=contagion_inputs,

@@ -1,7 +1,7 @@
 """ASRI calculation pipeline."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 import structlog
 
@@ -33,7 +33,7 @@ async def calculate_and_store_asri(
         ASRIDaily database record
     """
     if date is None:
-        date = datetime.utcnow()
+        date = datetime.now(timezone.utc)
 
     logger.info(
         "Calculating ASRI",
