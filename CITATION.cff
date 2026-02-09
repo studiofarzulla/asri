@@ -7,10 +7,11 @@ authors:
   - family-names: Farzulla
     given-names: Murad
     orcid: "https://orcid.org/0009-0002-7164-8704"
-    affiliation: "Farzulla Research"
+    affiliation: "Dissensus AI"
+    email: "murad@dissensus.ai"
   - family-names: Maksakov
     given-names: Andrew
-    affiliation: "Resurrexi Labs"
+    affiliation: "Dissensus AI"
 version: 2.0.0
 date-released: 2025-12-17
 license: MIT
@@ -33,4 +34,4 @@ references:
         given-names: Andrew
     title: "ASRI: An Aggregated Systemic Risk Index for Cryptocurrency Markets"
     year: 2025
-    doi: "10.5281/zenodo.17958151"
+    doi: "10.48550/arXiv.2602.03874"
