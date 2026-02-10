@@ -89,6 +89,20 @@ k8s/secret.yaml
 CLAUDE.md
 **/CLAUDE.md
 
+# Development/session notes (temporary artifacts)
+CHECKLIST.md
+PROGRESS.md
+SESSION_NOTES.md
+TODO.md
+PROJECT_SUMMARY.txt
+REVISION_NOTES.md
+
+# Archive/submission files
+*.tar.gz
+*.zip
+!**/fixtures/*.zip
+!**/test-data/*.zip
+
 # LaTeX build artifacts
 *.aux
 *.bbl
