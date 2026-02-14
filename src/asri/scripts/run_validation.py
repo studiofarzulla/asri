@@ -59,6 +59,8 @@ CRISIS_EVENTS = [
     },
 ]
 
+EVENT_STUDY_PROFILE = "paper_v2"
+
 
 class ValidationPipeline:
     """Master validation pipeline for ASRI."""
@@ -296,8 +298,7 @@ class ValidationPipeline:
         
         results = run_event_study(
             asri, events,
-            estimation_window=(-90, -31),
-            event_window=(-30, 10),
+            profile=EVENT_STUDY_PROFILE,
         )
         
         # Generate table

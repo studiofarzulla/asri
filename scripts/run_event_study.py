@@ -1,129 +1,201 @@
 #!/usr/bin/env python3
-"""Run event study analysis on actual data."""
+"""Run ASRI event-study analysis with explicit methodology profiles."""
 
+from __future__ import annotations
+
+import argparse
+import json
 import sys
-from pathlib import Path
+import urllib.request
 from datetime import datetime
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from scipy import stats
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from asri.validation.event_study import (  # noqa: E402
+    CrisisEvent,
+    METHODOLOGY_PROFILES,
+    format_event_study_table,
+    run_event_study,
+)
+
 CRISIS_EVENTS = [
-    {"name": "Terra/Luna", "date": datetime(2022, 5, 12)},
-    {"name": "Celsius/3AC", "date": datetime(2022, 6, 17)},
-    {"name": "FTX Collapse", "date": datetime(2022, 11, 11)},
-    {"name": "SVB Crisis", "date": datetime(2023, 3, 11)},
+    CrisisEvent(name="Terra/Luna", event_date=datetime(2022, 5, 12)),
+    CrisisEvent(name="Celsius/3AC", event_date=datetime(2022, 6, 17)),
+    CrisisEvent(name="FTX Collapse", event_date=datetime(2022, 11, 11)),
+    CrisisEvent(name="SVB Crisis", event_date=datetime(2023, 3, 11)),
 ]
 
-def run_event_study(asri, event_date, estimation_window=(-90, -31), event_window=(-30, 10)):
-    """Run event study for a single event."""
-    event_ts = pd.Timestamp(event_date)
 
-    # Estimation window
-    est_start = event_ts + pd.Timedelta(days=estimation_window[0])
-    est_end = event_ts + pd.Timedelta(days=estimation_window[1])
-    est_data = asri[(asri.index >= est_start) & (asri.index <= est_end)]
+def load_asri_series() -> pd.Series:
+    """Load ASRI series from local parquet, fallback to public API."""
+    parquet_path = PROJECT_ROOT / "results" / "data" / "asri_history.parquet"
+    try:
+        df = pd.read_parquet(parquet_path)
+        source = f"parquet:{parquet_path}"
+        if not isinstance(df.index, pd.DatetimeIndex):
+            if "date" in df.columns:
+                df = df.set_index("date")
+            df.index = pd.to_datetime(df.index)
+        asri = df["asri"].sort_index()
+        print(f"Loaded ASRI data from {source} ({len(asri)} rows)")
+        return asri
+    except Exception:
+        url = "https://api.dissensus.ai/asri/timeseries?start=2021-01-01&end=2026-12-31"
+        request = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "ASRI-Validation/1.0 (+https://asri.dissensus.ai)",
+                "Accept": "application/json",
+            },
+        )
+        with urllib.request.urlopen(request) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        rows = payload.get("data", [])
+        if not rows:
+            raise RuntimeError("No ASRI rows returned from fallback API")
+        df = pd.DataFrame(rows)
+        df["date"] = pd.to_datetime(df["date"])
+        asri = df.set_index("date")["asri"].sort_index()
+        print(f"Loaded ASRI data from api:{url} ({len(asri)} rows)")
+        return asri
 
-    pre_mean = est_data.mean()
-    pre_std = est_data.std()
 
-    # Event window
-    evt_start = event_ts + pd.Timedelta(days=event_window[0])
-    evt_end = event_ts + pd.Timedelta(days=event_window[1])
-    evt_data = asri[(asri.index >= evt_start) & (asri.index <= evt_end)]
-
-    # Peak in event window
-    peak = evt_data.max()
-    peak_date = evt_data.idxmax()
-
-    # Abnormal signal
-    abnormal = evt_data - pre_mean
-    cas = abnormal.sum()
-
-    # t-test
-    n = len(abnormal)
-    se = pre_std * np.sqrt(n)
-    t_stat = cas / se if se > 0 else 0
-    p_value = 2 * (1 - stats.t.cdf(abs(t_stat), df=n-1))
-
-    # Lead time (days before event with elevated ASRI)
-    # Using 1.5 sigma threshold
-    threshold = pre_mean + 1.5 * pre_std
-    pre_event_data = asri[(asri.index >= evt_start) & (asri.index < event_ts)]
-    elevated = pre_event_data[pre_event_data > threshold]
-    if len(elevated) > 0:
-        first_elevated = elevated.index.min()
-        lead_days = (event_ts - first_elevated).days
-    else:
-        lead_days = 0
-
+def summarize(results: list, profile: str) -> dict:
+    """Build compact summary dict for reporting and serialization."""
     return {
-        "pre_mean": pre_mean,
-        "pre_std": pre_std,
-        "peak": peak,
-        "cas": cas,
-        "t_stat": t_stat,
-        "p_value": p_value,
-        "lead_days": lead_days,
-        "significant": p_value < 0.01,
+        "profile": profile,
+        "n_events": len(results),
+        "n_significant": sum(1 for r in results if r.is_significant),
+        "avg_lead_days": float(pd.Series([r.lead_days for r in results]).mean()),
+        "avg_cas": float(pd.Series([r.cumulative_abnormal_signal for r in results]).mean()),
+        "events": [
+            {
+                "name": r.event.name,
+                "date": r.event.event_date.strftime("%Y-%m"),
+                "pre_mean": round(float(r.pre_event_mean), 3),
+                "peak": round(float(r.peak_asri), 3),
+                "cas": round(float(r.cumulative_abnormal_signal), 3),
+                "t_stat": round(float(r.t_statistic), 3),
+                "p_value": round(float(r.p_value), 6),
+                "lead_days": int(r.lead_days),
+                "significant": bool(r.is_significant),
+                "lead_method": r.lead_method,
+            }
+            for r in results
+        ],
     }
 
 
-def main():
-    # Load data
-    df = pd.read_parquet(PROJECT_ROOT / "results" / "data" / "asri_history.parquet")
-    if not isinstance(df.index, pd.DatetimeIndex):
-        if "date" in df.columns:
-            df.set_index("date", inplace=True)
-        df.index = pd.to_datetime(df.index)
+def format_comparison_table(profile_to_summary: dict[str, dict]) -> str:
+    """Create LaTeX table comparing methodology profiles event-by-event."""
+    events = [e.name for e in CRISIS_EVENTS]
+    profiles = list(profile_to_summary.keys())
 
-    asri = df["asri"]
+    lines = [
+        r"\begin{table}[htbp]",
+        r"\centering",
+        r"\caption{Event Study Reconciliation Across Methodology Profiles}",
+        r"\label{tab:event_study_reconciliation}",
+        r"\small",
+        r"\begin{tabular}{lccccc}",
+        r"\toprule",
+        r"Profile & Event & Peak & CAS & $t$-stat & Lead \\",
+        r"\midrule",
+    ]
 
-    print("="*70)
-    print("EVENT STUDY RESULTS (ACTUAL DATA)")
-    print("="*70)
+    for profile in profiles:
+        event_rows = profile_to_summary[profile]["events"]
+        for i, event_name in enumerate(events):
+            row = next(r for r in event_rows if r["name"] == event_name)
+            prefix = profile if i == 0 else ""
+            lines.append(
+                f"{prefix} & {row['name']} & {row['peak']:.1f} & {row['cas']:.1f} & "
+                f"{row['t_stat']:.2f} & {row['lead_days']} \\\\"
+            )
+        lines.append(r"\midrule")
+
+    lines.extend(
+        [
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"\begin{tablenotes}",
+            r"\small",
+            r"\item Profiles are computed on the same ASRI series to isolate methodological effects.",
+            r"\end{tablenotes}",
+            r"\end{table}",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run ASRI event study with profile support.")
+    parser.add_argument(
+        "--profile",
+        choices=sorted(METHODOLOGY_PROFILES.keys()),
+        default="paper_v2",
+        help="Methodology profile for primary event study output.",
+    )
+    parser.add_argument(
+        "--compare-profiles",
+        action="store_true",
+        help="Generate side-by-side profile comparison artifacts.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    asri = load_asri_series()
+
+    results = run_event_study(asri=asri, events=CRISIS_EVENTS, profile=args.profile)
+    summary = summarize(results, args.profile)
+
+    print("=" * 80)
+    print(f"ASRI EVENT STUDY ({args.profile})")
+    print("=" * 80)
+    print(
+        f"Events={summary['n_events']} | Significant={summary['n_significant']} | "
+        f"AvgLead={summary['avg_lead_days']:.1f}d | AvgCAS={summary['avg_cas']:.1f}"
+    )
     print()
+    print(f"{'Event':<15} {'Date':<8} {'Peak':>7} {'CAS':>10} {'t-stat':>9} {'Lead':>6}")
+    print("-" * 80)
+    for row in summary["events"]:
+        print(
+            f"{row['name']:<15} {row['date']:<8} "
+            f"{row['peak']:>7.1f} {row['cas']:>10.1f} {row['t_stat']:>9.2f} {row['lead_days']:>6d}"
+        )
 
-    print(f"{'Event':<15} {'Date':<10} {'Pre-Mean':<10} {'Peak':<8} {'CAS':<12} {'t-stat':<10} {'Lead':<8} {'Sig'}")
-    print("-"*90)
+    tables_dir = PROJECT_ROOT / "results" / "tables"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    with open(tables_dir / "event_study.tex", "w", encoding="utf-8") as handle:
+        handle.write(format_event_study_table(results))
+    print(f"\nSaved table: {tables_dir / 'event_study.tex'}")
 
-    total_lead = 0
-    total_cas = 0
-    sig_count = 0
+    recon_dir = PROJECT_ROOT / "results" / "reconciliation"
+    recon_dir.mkdir(parents=True, exist_ok=True)
+    with open(recon_dir / "event_study_primary.json", "w", encoding="utf-8") as handle:
+        json.dump(summary, handle, indent=2)
+    print(f"Saved summary: {recon_dir / 'event_study_primary.json'}")
 
-    for event in CRISIS_EVENTS:
-        result = run_event_study(asri, event["date"])
-        sig = "***" if result["p_value"] < 0.01 else ("**" if result["p_value"] < 0.05 else "*" if result["p_value"] < 0.1 else "")
+    if args.compare_profiles:
+        profile_to_summary: dict[str, dict] = {}
+        for profile in sorted(METHODOLOGY_PROFILES.keys()):
+            prof_results = run_event_study(asri=asri, events=CRISIS_EVENTS, profile=profile)
+            profile_to_summary[profile] = summarize(prof_results, profile)
 
-        print(f"{event['name']:<15} {event['date'].strftime('%Y-%m'):<10} {result['pre_mean']:<10.1f} {result['peak']:<8.1f} {result['cas']:<12.1f}{sig:<3} {result['t_stat']:<10.2f} {result['lead_days']:<8} {'Yes' if result['significant'] else 'No'}")
+        with open(recon_dir / "event_study_method_comparison.json", "w", encoding="utf-8") as handle:
+            json.dump(profile_to_summary, handle, indent=2)
+        with open(tables_dir / "event_study_comparison.tex", "w", encoding="utf-8") as handle:
+            handle.write(format_comparison_table(profile_to_summary))
 
-        total_lead += result["lead_days"]
-        total_cas += result["cas"]
-        if result["significant"]:
-            sig_count += 1
-
-    print("-"*90)
-    print(f"{'Summary':<15} {'':<10} {'':<10} {'':<8} {total_cas/4:<12.1f} {'':<10} {total_lead/4:<8.0f} {sig_count}/4")
-    print()
-
-    print("\nLaTeX table format:")
-    print("="*70)
-    print(r"\begin{tabular}{lccccccc}")
-    print(r"\toprule")
-    print(r"Event & Date & Pre-Event & Peak & CAS & $t$-stat & Lead Days & Sig. \\")
-    print(r"\midrule")
-
-    for event in CRISIS_EVENTS:
-        result = run_event_study(asri, event["date"])
-        sig = "***" if result["p_value"] < 0.01 else ("**" if result["p_value"] < 0.05 else "*" if result["p_value"] < 0.1 else "")
-        print(f"{event['name']} & {event['date'].strftime('%Y-%m')} & {result['pre_mean']:.1f} & {result['peak']:.1f} & {result['cas']:.1f}{sig} & {result['t_stat']:.2f} & {result['lead_days']} & {'Yes' if result['significant'] else 'No'} \\\\")
-
-    print(r"\bottomrule")
-    print(r"\end{tabular}")
+        print(f"Saved comparison JSON: {recon_dir / 'event_study_method_comparison.json'}")
+        print(f"Saved comparison table: {tables_dir / 'event_study_comparison.tex'}")
 
 
 if __name__ == "__main__":

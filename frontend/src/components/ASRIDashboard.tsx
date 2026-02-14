@@ -20,7 +20,12 @@ import {
   Code,
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.dissensus.ai';
+const DEFAULT_API_URL =
+  window.location.hostname === 'asri.dissensus.ai' ? '/api' : 'https://api.dissensus.ai';
+const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
+const DOCS_URL =
+  import.meta.env.VITE_DOCS_URL ||
+  (window.location.hostname === 'asri.dissensus.ai' ? '/docs' : 'https://api.dissensus.ai/docs');
 
 interface SubIndices {
   stablecoin_risk: number;
@@ -37,6 +42,7 @@ interface CurrentASRIResponse {
   sub_indices: SubIndices;
   alert_level: string;
   last_update: string;
+  methodology_profile?: string;
 }
 
 interface TimeseriesPoint {
@@ -47,7 +53,13 @@ interface TimeseriesPoint {
 
 interface TimeseriesResponse {
   data: TimeseriesPoint[];
-  metadata: { points: number; frequency: string };
+  metadata: {
+    points: number;
+    frequency: string;
+    start?: string;
+    end?: string;
+    methodology_profile?: string;
+  };
 }
 
 interface RegimeResponse {
@@ -57,7 +69,8 @@ interface RegimeResponse {
   transition_probs: {
     to_low_risk: number;
     stay_moderate: number;
-    to_elevated: number;
+    to_elevated?: number;
+    to_crisis?: number;
   };
 }
 
@@ -98,15 +111,19 @@ const getAlertColor = (value: number) => {
 
 const getAlertBadgeColor = (level: string) => {
   switch (level.toLowerCase()) {
-    case 'high': return 'bg-red-900/80 text-red-300 border-red-700';
-    case 'medium': return 'bg-amber-900/80 text-amber-300 border-amber-700';
-    default: return 'bg-emerald-900/80 text-emerald-300 border-emerald-700';
+    case 'critical': return 'bg-red-900/80 text-red-300 border-red-700';
+    case 'elevated': return 'bg-amber-900/80 text-amber-300 border-amber-700';
+    case 'moderate': return 'bg-orange-900/80 text-orange-300 border-orange-700';
+    case 'low':
+    default:
+      return 'bg-emerald-900/80 text-emerald-300 border-emerald-700';
   }
 };
 
 export default function ASRIDashboard() {
   const [current, setCurrent] = useState<CurrentASRIResponse | null>(null);
   const [timeseries, setTimeseries] = useState<TimeseriesPoint[]>([]);
+  const [timeseriesMeta, setTimeseriesMeta] = useState<TimeseriesResponse['metadata'] | null>(null);
   const [regime, setRegime] = useState<RegimeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +142,7 @@ export default function ASRIDashboard() {
       ]);
 
       if (!currentRes.ok || !timeseriesRes.ok) {
-        throw new Error('Failed to fetch data from API');
+        throw new Error(`Failed to fetch data from API (${currentRes.status}/${timeseriesRes.status})`);
       }
 
       const currentData: CurrentASRIResponse = await currentRes.json();
@@ -134,6 +151,7 @@ export default function ASRIDashboard() {
 
       setCurrent(currentData);
       setTimeseries(timeseriesData.data);
+      setTimeseriesMeta(timeseriesData.metadata);
       setRegime(regimeData);
       setError(null);
     } catch (err) {
@@ -411,6 +429,14 @@ export default function ASRIDashboard() {
             </div>
             
             <div className="grid grid-cols-3 gap-4">
+              {/*
+                Keep this resilient during migration: older backends may still return
+                `to_crisis` while canonical profile returns `to_elevated`.
+              */}
+              {(() => {
+                const toElevated = regime.transition_probs.to_elevated ?? regime.transition_probs.to_crisis ?? 0;
+                return (
+                  <>
               <div className="text-center p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
                 <div className="text-xs text-zinc-500 mb-1">→ Low Risk</div>
                 <div className="text-lg font-mono text-emerald-400">{(regime.transition_probs.to_low_risk * 100).toFixed(1)}%</div>
@@ -421,8 +447,11 @@ export default function ASRIDashboard() {
               </div>
               <div className="text-center p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
                 <div className="text-xs text-zinc-500 mb-1">→ Elevated</div>
-                <div className="text-lg font-mono text-red-400">{(regime.transition_probs.to_elevated * 100).toFixed(1)}%</div>
+                <div className="text-lg font-mono text-red-400">{(toElevated * 100).toFixed(1)}%</div>
               </div>
+                  </>
+                );
+              })()}
             </div>
           </section>
         )}
@@ -468,31 +497,17 @@ export default function ASRIDashboard() {
               </div>
               <p className="text-xs text-zinc-500">Statistical validation results</p>
             </div>
-            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-2 py-0.5 bg-emerald-900/50 text-emerald-400 text-xs font-mono rounded">GET</span>
-                <span className="text-sm font-mono text-zinc-300">/asri/export/{'{format}'}</span>
-              </div>
-              <p className="text-xs text-zinc-500">Data export (json, csv, parquet)</p>
-            </div>
-            <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-2 py-0.5 bg-blue-900/50 text-blue-400 text-xs font-mono rounded">POST</span>
-                <span className="text-sm font-mono text-zinc-300">/asri/calculate</span>
-              </div>
-              <p className="text-xs text-zinc-500">Trigger live calculation (authenticated)</p>
-            </div>
           </div>
           
           <div className="flex items-center justify-between pt-4 border-t border-zinc-800/50">
             <div className="flex items-center gap-4 text-xs text-zinc-500">
               <div className="flex items-center gap-1.5">
                 <Database className="h-3.5 w-3.5" />
-                <span>1,461 data points</span>
+                <span>{(timeseriesMeta?.points ?? timeseries.length).toLocaleString()} data points</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Activity className="h-3.5 w-3.5" />
-                <span>Daily updates 06:00 UTC</span>
+                <span>{(timeseriesMeta?.frequency ?? 'daily')} updates</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5" />
@@ -500,7 +515,7 @@ export default function ASRIDashboard() {
               </div>
             </div>
             <a
-              href="https://github.com/studiofarzulla/asri#api-reference"
+              href={DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
@@ -529,7 +544,7 @@ export default function ASRIDashboard() {
               <ExternalLink className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
             </a>
             <a
-              href="https://github.com/studiofarzulla/asri#api-reference"
+              href={DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3 bg-zinc-900/50 rounded-xl border border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900 transition-all group"
@@ -537,7 +552,7 @@ export default function ASRIDashboard() {
               <Code className="h-5 w-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100">API Reference</p>
-                <p className="text-xs text-zinc-600 truncate">Endpoints & Usage</p>
+                <p className="text-xs text-zinc-600 truncate">OpenAPI docs endpoint</p>
               </div>
               <ExternalLink className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
             </a>
@@ -578,7 +593,7 @@ export default function ASRIDashboard() {
                   Last updated: {new Date(current.last_update).toLocaleString('en-GB')}
                 </span>
               )}
-              <span className="text-zinc-700">v2.0.0</span>
+              <span className="text-zinc-700">v2.1.0</span>
             </div>
           </div>
           <p className="text-center text-[10px] text-zinc-700 mt-4 max-w-2xl mx-auto">

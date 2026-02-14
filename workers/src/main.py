@@ -9,12 +9,26 @@ from datetime import datetime
 import json
 from js import Response, Headers
 
+ASRI_WEIGHTS = {
+    "stablecoin_risk": 0.30,
+    "defi_liquidity_risk": 0.25,
+    "contagion_risk": 0.25,
+    "arbitrage_opacity": 0.20,
+}
+
 
 # ============== Helper Functions ==============
 
 def json_response(data: dict, status: int = 200) -> Response:
     """Create a JSON response."""
-    headers = Headers.new({"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"}.items())
+    headers = Headers.new(
+        {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        }.items()
+    )
     return Response.new(json.dumps(data), status=status, headers=headers)
 
 
@@ -39,16 +53,42 @@ def get_trend(current: float, avg: float) -> str:
     return "stable"
 
 
+def compute_asri(sub_indices: dict) -> float:
+    """Compute aggregate ASRI from sub-index components."""
+    value = (
+        ASRI_WEIGHTS["stablecoin_risk"] * sub_indices["stablecoin_risk"]
+        + ASRI_WEIGHTS["defi_liquidity_risk"] * sub_indices["defi_liquidity_risk"]
+        + ASRI_WEIGHTS["contagion_risk"] * sub_indices["contagion_risk"]
+        + ASRI_WEIGHTS["arbitrage_opacity"] * sub_indices["arbitrage_opacity"]
+    )
+    return round(value, 1)
+
+
+def options_response() -> Response:
+    """Handle CORS preflight."""
+    headers = Headers.new(
+        {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        }.items()
+    )
+    return Response.new("", status=204, headers=headers)
+
+
 # ============== Handlers ==============
 
 def handle_root():
     """Root endpoint."""
     return json_response({
         "name": "ASRI API",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "description": "Aggregated Systemic Risk Index",
+        "canonical_base": "https://asri.dissensus.ai/api",
+        "legacy_base": "https://api.dissensus.ai",
         "docs": "/docs",
         "paper_doi": "10.5281/zenodo.17918239",
+        "methodology_profile": "paper_v2",
         "endpoints": {
             "current": "/asri/current",
             "timeseries": "/asri/timeseries",
@@ -64,9 +104,10 @@ def handle_health():
     """Health check endpoint."""
     return json_response({
         "status": "healthy",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "timestamp": datetime.utcnow().isoformat(),
         "runtime": "cloudflare-python-workers",
+        "methodology_profile": "paper_v2",
     })
 
 
@@ -84,19 +125,46 @@ async def handle_current(env):
 
         if rows and len(rows) > 0:
             row = rows[0]
+            sub_indices = {
+                "stablecoin_risk": float(row["stablecoin_risk"]),
+                "defi_liquidity_risk": float(row["defi_liquidity_risk"]),
+                "contagion_risk": float(row["contagion_risk"]),
+                "arbitrage_opacity": float(row["arbitrage_opacity"]),
+            }
+            asri = compute_asri(sub_indices)
+            # Compute rolling average from reconciled values to avoid stale DB aggregates.
+            avg_result = await env.DB.prepare(
+                "SELECT stablecoin_risk, defi_liquidity_risk, contagion_risk, arbitrage_opacity FROM asri_daily ORDER BY date DESC LIMIT 30"
+            ).all()
+            avg_rows = avg_result.results.to_py() if hasattr(avg_result.results, "to_py") else list(avg_result.results)
+            if avg_rows:
+                avg_values = []
+                for avg_row in avg_rows:
+                    avg_values.append(
+                        compute_asri(
+                            {
+                                "stablecoin_risk": float(avg_row["stablecoin_risk"]),
+                                "defi_liquidity_risk": float(avg_row["defi_liquidity_risk"]),
+                                "contagion_risk": float(avg_row["contagion_risk"]),
+                                "arbitrage_opacity": float(avg_row["arbitrage_opacity"]),
+                            }
+                        )
+                    )
+                asri_30d_avg = round(sum(avg_values) / len(avg_values), 1)
+            else:
+                asri_30d_avg = asri
+            trend = row["trend"] or get_trend(asri, asri_30d_avg)
+            alert_level = get_alert_level(asri)
             return json_response({
                 "timestamp": now,
-                "asri": row["asri"],
-                "asri_30d_avg": row["asri_30d_avg"],
-                "trend": row["trend"] or get_trend(row["asri"], row["asri_30d_avg"] or row["asri"]),
-                "sub_indices": {
-                    "stablecoin_risk": row["stablecoin_risk"],
-                    "defi_liquidity_risk": row["defi_liquidity_risk"],
-                    "contagion_risk": row["contagion_risk"],
-                    "arbitrage_opacity": row["arbitrage_opacity"],
-                },
-                "alert_level": row["alert_level"] or get_alert_level(row["asri"]),
+                # Deterministic aggregation enforces equation consistency at read time.
+                "asri": asri,
+                "asri_30d_avg": asri_30d_avg,
+                "trend": trend,
+                "sub_indices": sub_indices,
+                "alert_level": alert_level,
                 "last_update": row["date"],
+                "methodology_profile": "paper_v2",
             })
     except Exception as e:
         return json_response({"error": f"Database error: {str(e)}"}, status=500)
@@ -126,15 +194,16 @@ async def handle_timeseries(env, start: str, end: str):
 
         data = []
         for row in rows:
+            sub_indices = {
+                "stablecoin_risk": float(row["stablecoin_risk"]),
+                "defi_liquidity_risk": float(row["defi_liquidity_risk"]),
+                "contagion_risk": float(row["contagion_risk"]),
+                "arbitrage_opacity": float(row["arbitrage_opacity"]),
+            }
             data.append({
                 "date": row["date"],
-                "asri": row["asri"],
-                "sub_indices": {
-                    "stablecoin_risk": row["stablecoin_risk"],
-                    "defi_liquidity_risk": row["defi_liquidity_risk"],
-                    "contagion_risk": row["contagion_risk"],
-                    "arbitrage_opacity": row["arbitrage_opacity"],
-                },
+                "asri": compute_asri(sub_indices),
+                "sub_indices": sub_indices,
             })
 
         return json_response({
@@ -144,6 +213,7 @@ async def handle_timeseries(env, start: str, end: str):
                 "frequency": "daily",
                 "start": start,
                 "end": end,
+                "methodology_profile": "paper_v2",
             },
         })
     except Exception as e:
@@ -153,7 +223,8 @@ async def handle_timeseries(env, start: str, end: str):
 def handle_methodology():
     """Get ASRI methodology documentation."""
     return json_response({
-        "version": "2.0",
+        "version": "2.1",
+        "methodology_profile": "paper_v2",
         "weights": {
             "stablecoin_risk": 0.30,
             "defi_liquidity_risk": 0.25,
@@ -183,11 +254,11 @@ def handle_methodology():
         "backtest_period": "2021-01-01 to 2024-12-31",
         "validation_results": {
             "crises_detected": "4/4 (100%)",
-            "average_lead_time_days": 40,
+            "average_lead_time_days": 30,
             "event_study_significance": "all p < 0.01",
             "structural_stability": "Chow p = 0.99",
         },
-        "documentation_url": "https://asri.dissensus.ai/methodology",
+        "documentation_url": "https://asri.dissensus.ai/docs",
         "paper_doi": "10.5281/zenodo.17918239",
     })
 
@@ -217,11 +288,12 @@ def handle_validation():
             "arb_opacity": {"adf_stat": -4.33, "adf_p": 0.000, "conclusion": "stationary"},
         },
         "event_study": {
-            "terra_luna": {"date": "2022-05", "t_stat": 7.18, "p_value": 0.000, "lead_days": 6, "significant": True},
-            "celsius_3ac": {"date": "2022-06", "t_stat": 6.63, "p_value": 0.000, "lead_days": 54, "significant": True},
-            "ftx_collapse": {"date": "2022-11", "t_stat": 12.23, "p_value": 0.000, "lead_days": 60, "significant": True},
-            "svb_crisis": {"date": "2023-03", "t_stat": 34.54, "p_value": 0.000, "lead_days": 40, "significant": True},
-            "summary": {"detection_rate": 1.0, "avg_lead_time": 40.0},
+            "terra_luna": {"date": "2022-05", "t_stat": 5.47, "p_value": 0.000, "lead_days": 30, "significant": True},
+            "celsius_3ac": {"date": "2022-06", "t_stat": 29.78, "p_value": 0.000, "lead_days": 30, "significant": True},
+            "ftx_collapse": {"date": "2022-11", "t_stat": 32.64, "p_value": 0.000, "lead_days": 30, "significant": True},
+            "svb_crisis": {"date": "2023-03", "t_stat": 26.91, "p_value": 0.000, "lead_days": 29, "significant": True},
+            "summary": {"detection_rate": 1.0, "avg_lead_time": 29.8},
+            "methodology_profile": "paper_v2",
         },
         "regime_model": {
             "n_regimes": 3,
@@ -236,34 +308,34 @@ def handle_validation():
     })
 
 
-def handle_subindex(name: str):
+async def handle_subindex(env, name: str):
     """Get individual sub-index information."""
     valid_names = {
         "stablecoin_risk": {
             "name": "Stablecoin Risk",
             "weight": 0.30,
-            "current_value": 38.5,
+            "current_value": None,
             "description": "Measures systemic risk from stablecoin peg deviations and concentration",
             "components": ["USDT peg deviation", "USDC peg deviation", "Stablecoin concentration"],
         },
         "defi_liquidity_risk": {
             "name": "DeFi Liquidity Risk",
             "weight": 0.25,
-            "current_value": 45.2,
+            "current_value": None,
             "description": "Measures liquidity fragility across DeFi protocols",
             "components": ["TVL volatility", "Protocol concentration", "Liquidity depth"],
         },
         "contagion_risk": {
             "name": "Contagion Risk",
             "weight": 0.25,
-            "current_value": 48.1,
+            "current_value": None,
             "description": "Measures cross-protocol and cross-chain exposure risk",
             "components": ["Cross-protocol exposure", "Bridge concentration", "Correlation clustering"],
         },
         "arbitrage_opacity": {
             "name": "Arbitrage Opacity",
             "weight": 0.20,
-            "current_value": 35.8,
+            "current_value": None,
             "description": "Measures market efficiency and information asymmetry",
             "components": ["CEX-DEX spread", "Cross-chain arbitrage", "MEV activity"],
         },
@@ -274,6 +346,18 @@ def handle_subindex(name: str):
             "error": f"Invalid sub-index. Valid options: {list(valid_names.keys())}"
         }, status=400)
 
+    try:
+        result = await env.DB.prepare(
+            "SELECT stablecoin_risk, defi_liquidity_risk, contagion_risk, arbitrage_opacity FROM asri_daily ORDER BY date DESC LIMIT 1"
+        ).all()
+        rows = result.results.to_py() if hasattr(result.results, "to_py") else list(result.results)
+        if rows:
+            valid_names[name]["current_value"] = float(rows[0][name])
+        else:
+            valid_names[name]["current_value"] = 0.0
+    except Exception:
+        valid_names[name]["current_value"] = 0.0
+
     return json_response(valid_names[name])
 
 
@@ -283,7 +367,7 @@ def handle_docs():
         "openapi": "3.0.0",
         "info": {
             "title": "ASRI API",
-            "version": "2.0.0",
+            "version": "2.1.0",
             "description": "Aggregated Systemic Risk Index - Unified crypto/DeFi systemic risk monitoring",
         },
         "paths": {
@@ -296,6 +380,7 @@ def handle_docs():
             "/asri/validation": {"get": {"summary": "Validation results", "description": "Returns statistical validation tests"}},
             "/asri/subindex/{name}": {"get": {"summary": "Sub-index details", "description": "Returns individual sub-index information"}},
         },
+        "methodology_profile": "paper_v2",
     })
 
 
@@ -305,12 +390,29 @@ async def on_fetch(request, env):
     """Main request handler."""
     url = request.url
     path = url.split("?")[0].rstrip("/")
+    method = request.method
+    host = ""
 
     # Extract path from URL
     if "://" in path:
+        host = path.split("/")[2].lower()
         path = "/" + "/".join(path.split("/")[3:])
     if not path:
         path = "/"
+
+    # Canonicalize legacy dashboard URL.
+    if host in {"dissensus.ai", "www.dissensus.ai"} and path.startswith("/asri"):
+        headers = Headers.new({"Location": "https://asri.dissensus.ai/"}.items())
+        return Response.new("", status=301, headers=headers)
+
+    # Canonical routing support: asri.dissensus.ai/api/*
+    if path == "/api":
+        path = "/"
+    elif path.startswith("/api/"):
+        path = path[len("/api"):]
+
+    if method == "OPTIONS":
+        return options_response()
 
     # Parse query params
     query_params = {}
@@ -342,6 +444,6 @@ async def on_fetch(request, env):
         return handle_validation()
     elif path.startswith("/asri/subindex/"):
         name = path.split("/")[-1]
-        return handle_subindex(name)
+        return await handle_subindex(env, name)
     else:
         return json_response({"error": "Not found", "path": path}, status=404)

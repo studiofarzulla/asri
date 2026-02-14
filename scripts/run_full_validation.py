@@ -88,6 +88,8 @@ SUB_INDEX_COLUMNS = [
     "arbitrage_opacity",
 ]
 
+EVENT_STUDY_PROFILE = "paper_v2"
+
 
 # =============================================================================
 # Result Dataclasses
@@ -107,6 +109,7 @@ class ValidationSummary:
     all_stationary: bool
 
     # Event study
+    event_study_profile: str
     n_events: int
     n_significant_events: int
     avg_lead_days: float
@@ -332,8 +335,7 @@ class FullValidationPipeline:
         results = run_event_study(
             asri=asri,
             events=events,
-            estimation_window=(-90, -31),
-            event_window=(-30, 10),
+            profile=EVENT_STUDY_PROFILE,
         )
 
         # Generate LaTeX table
@@ -935,6 +937,7 @@ MSE & -- & {results['test_mse']:.4f} \\\\
             ),
             stationarity_conclusions=stat_conclusions,
             all_stationary=all_stationary,
+            event_study_profile=EVENT_STUDY_PROFILE,
             n_events=len(event_results),
             n_significant_events=n_significant,
             avg_lead_days=avg_lead,

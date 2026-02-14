@@ -13,6 +13,10 @@
 
 This paper introduces the Aggregated Systemic Risk Index (ASRI), the first composite measure designed to monitor systemic risks arising from DeFi-TradFi interconnection. ASRI aggregates four sub-indices -- Stablecoin Concentration Risk, DeFi Liquidity Risk, Contagion Risk, and Regulatory Opacity Risk -- into a daily composite score. Validated against four major crypto crises (Terra/Luna, Celsius/3AC, FTX, SVB), event study analysis detects statistically significant abnormal stress for all four events (t-statistics 5.47--32.64, all p < 0.01), with threshold-based detection identifying three of four at an average 30-day lead time. A Hidden Markov Model identifies three risk regimes with persistence exceeding 97%. Out-of-sample testing on 2024--2025 data confirms zero false positives. ASRI captures DeFi-specific vulnerabilities -- composability risk, flash loan exposure, and RWA linkages -- that traditional measures such as SRISK and CoVaR cannot accommodate. An open-source implementation with live dashboard is provided.
 
+Paper links:
+- arXiv: https://arxiv.org/abs/2602.03874
+- DOI: https://doi.org/10.48550/arXiv.2602.03874
+
 ## Key Findings
 
 | Finding | Result |
@@ -59,9 +63,17 @@ asri/
 GET /asri/current          # Current ASRI value + sub-indices
 GET /asri/timeseries       # Historical data
 GET /asri/subindex/{name}  # Individual sub-index
-GET /asri/stress-test      # Scenario analysis
+GET /asri/regime           # Regime classification
+GET /asri/validation       # Validation summary
 GET /asri/methodology      # Documentation
 ```
+
+### Production Routing
+
+- Canonical dashboard: `https://asri.dissensus.ai/`
+- Canonical API base: `https://asri.dissensus.ai/api`
+- Canonical docs: `https://asri.dissensus.ai/docs`
+- Legacy API compatibility: `https://api.dissensus.ai/*`
 
 ### Data Sources
 

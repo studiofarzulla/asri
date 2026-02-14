@@ -33,6 +33,13 @@ CF_EMAIL = os.getenv("CLOUDFLARE_EMAIL", "contact@farzulla.com")
 CF_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "917877c07fa2e1c9f223db31d3fc52d6")
 D1_DATABASE_ID = "f8c08c15-a596-4d7f-8c00-0f7592da26f4"
 
+ASRI_WEIGHTS = {
+    "stablecoin_risk": 0.30,
+    "defi_liquidity_risk": 0.25,
+    "contagion_risk": 0.25,
+    "arbitrage_opacity": 0.20,
+}
+
 # Try to load from cloudflare env if not in main .env
 if not CF_API_KEY:
     cf_env = Path.home() / ".env.cloudflare"
@@ -128,6 +135,33 @@ class D1Client:
         return success
 
 
+def compute_weighted_asri(
+    stablecoin_risk: float,
+    defi_liquidity_risk: float,
+    contagion_risk: float,
+    arbitrage_opacity: float,
+) -> float:
+    """Compute ASRI using canonical weighted aggregation."""
+    asri = (
+        ASRI_WEIGHTS["stablecoin_risk"] * stablecoin_risk
+        + ASRI_WEIGHTS["defi_liquidity_risk"] * defi_liquidity_risk
+        + ASRI_WEIGHTS["contagion_risk"] * contagion_risk
+        + ASRI_WEIGHTS["arbitrage_opacity"] * arbitrage_opacity
+    )
+    return round(asri, 1)
+
+
+def determine_alert_level(asri: float) -> str:
+    """Map ASRI score to alert level with deterministic boundaries."""
+    if asri < 30:
+        return "low"
+    if asri < 50:
+        return "moderate"
+    if asri < 70:
+        return "elevated"
+    return "critical"
+
+
 async def run_backfill(
     start_date: datetime,
     end_date: datetime,
@@ -194,16 +228,28 @@ async def run_backfill(
                 result = await backtester.calculate_for_date(current)
                 records_calculated += 1
 
+                stablecoin_risk = round(result["stablecoin_risk"], 1)
+                defi_liquidity_risk = round(result["defi_liquidity_risk"], 1)
+                contagion_risk = round(result["contagion_risk"], 1)
+                arbitrage_opacity = round(result["arbitrage_opacity"], 1)
+                asri = compute_weighted_asri(
+                    stablecoin_risk=stablecoin_risk,
+                    defi_liquidity_risk=defi_liquidity_risk,
+                    contagion_risk=contagion_risk,
+                    arbitrage_opacity=arbitrage_opacity,
+                )
+
                 record = {
                     "date": date_str,
-                    "asri": round(result["asri"], 1),
-                    "asri_30d_avg": round(result["asri"], 1),  # Will be recalculated later
+                    # Keep ASRI mathematically consistent with stored sub-index columns.
+                    "asri": asri,
+                    "asri_30d_avg": asri,  # Will be recalculated later
                     "trend": "stable",
-                    "alert_level": result["alert_level"],
-                    "stablecoin_risk": round(result["stablecoin_risk"], 1),
-                    "defi_liquidity_risk": round(result["defi_liquidity_risk"], 1),
-                    "contagion_risk": round(result["contagion_risk"], 1),
-                    "arbitrage_opacity": round(result["arbitrage_opacity"], 1),
+                    "alert_level": determine_alert_level(asri),
+                    "stablecoin_risk": stablecoin_risk,
+                    "defi_liquidity_risk": defi_liquidity_risk,
+                    "contagion_risk": contagion_risk,
+                    "arbitrage_opacity": arbitrage_opacity,
                 }
 
                 if dry_run:

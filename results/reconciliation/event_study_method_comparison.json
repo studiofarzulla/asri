@@ -1,0 +1,173 @@
+{
+  "counterfactual_60d": {
+    "profile": "counterfactual_60d",
+    "n_events": 4,
+    "n_significant": 3,
+    "avg_lead_days": 7.75,
+    "avg_cas": 419.4641666666666,
+    "events": [
+      {
+        "name": "Terra/Luna",
+        "date": "2022-05",
+        "pre_mean": 42.377,
+        "peak": 48.7,
+        "cas": 21.257,
+        "t_stat": 1.233,
+        "p_value": 0.224894,
+        "lead_days": 0,
+        "significant": false,
+        "lead_method": "final_sustained_threshold"
+      },
+      {
+        "name": "Celsius/3AC",
+        "date": "2022-06",
+        "pre_mean": 42.523,
+        "peak": 71.4,
+        "cas": 525.043,
+        "t_stat": 30.731,
+        "p_value": 0.0,
+        "lead_days": 14,
+        "significant": true,
+        "lead_method": "final_sustained_threshold"
+      },
+      {
+        "name": "FTX Collapse",
+        "date": "2022-11",
+        "pre_mean": 42.207,
+        "peak": 84.7,
+        "cas": 649.927,
+        "t_stat": 41.997,
+        "p_value": 0.0,
+        "lead_days": 9,
+        "significant": true,
+        "lead_method": "final_sustained_threshold"
+      },
+      {
+        "name": "SVB Crisis",
+        "date": "2023-03",
+        "pre_mean": 41.67,
+        "peak": 68.7,
+        "cas": 481.63,
+        "t_stat": 30.99,
+        "p_value": 0.0,
+        "lead_days": 8,
+        "significant": true,
+        "lead_method": "final_sustained_threshold"
+      }
+    ]
+  },
+  "legacy_v1": {
+    "profile": "legacy_v1",
+    "n_events": 4,
+    "n_significant": 4,
+    "avg_lead_days": 35.75,
+    "avg_cas": 472.4224999999999,
+    "events": [
+      {
+        "name": "Terra/Luna",
+        "date": "2022-05",
+        "pre_mean": 40.448,
+        "peak": 48.7,
+        "cas": 100.318,
+        "t_stat": 5.474,
+        "p_value": 3e-06,
+        "lead_days": 40,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      },
+      {
+        "name": "Celsius/3AC",
+        "date": "2022-06",
+        "pre_mean": 42.608,
+        "peak": 71.4,
+        "cas": 521.558,
+        "t_stat": 29.781,
+        "p_value": 0.0,
+        "lead_days": 36,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      },
+      {
+        "name": "FTX Collapse",
+        "date": "2022-11",
+        "pre_mean": 39.552,
+        "peak": 84.7,
+        "cas": 758.782,
+        "t_stat": 32.64,
+        "p_value": 0.0,
+        "lead_days": 38,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      },
+      {
+        "name": "SVB Crisis",
+        "date": "2023-03",
+        "pre_mean": 41.002,
+        "peak": 68.7,
+        "cas": 509.032,
+        "t_stat": 26.915,
+        "p_value": 0.0,
+        "lead_days": 29,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      }
+    ]
+  },
+  "paper_v2": {
+    "profile": "paper_v2",
+    "n_events": 4,
+    "n_significant": 4,
+    "avg_lead_days": 29.75,
+    "avg_cas": 472.4224999999999,
+    "events": [
+      {
+        "name": "Terra/Luna",
+        "date": "2022-05",
+        "pre_mean": 40.448,
+        "peak": 48.7,
+        "cas": 100.318,
+        "t_stat": 5.474,
+        "p_value": 3e-06,
+        "lead_days": 30,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      },
+      {
+        "name": "Celsius/3AC",
+        "date": "2022-06",
+        "pre_mean": 42.608,
+        "peak": 71.4,
+        "cas": 521.558,
+        "t_stat": 29.781,
+        "p_value": 0.0,
+        "lead_days": 30,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      },
+      {
+        "name": "FTX Collapse",
+        "date": "2022-11",
+        "pre_mean": 39.552,
+        "peak": 84.7,
+        "cas": 758.782,
+        "t_stat": 32.64,
+        "p_value": 0.0,
+        "lead_days": 30,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      },
+      {
+        "name": "SVB Crisis",
+        "date": "2023-03",
+        "pre_mean": 41.002,
+        "peak": 68.7,
+        "cas": 509.032,
+        "t_stat": 26.915,
+        "p_value": 0.0,
+        "lead_days": 29,
+        "significant": true,
+        "lead_method": "first_sigma_breach"
+      }
+    ]
+  }
+}

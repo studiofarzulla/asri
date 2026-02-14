@@ -14,3 +14,6 @@ database_id = "f8c08c15-a596-4d7f-8c00-0f7592da26f4"
 
 # Custom domain configured via zone-level worker routes:
 # api.dissensus.ai/* -> asri-api
+# asri.dissensus.ai/api* -> asri-api
+# asri.dissensus.ai/docs* -> asri-api
+# dissensus.ai/asri* -> 301 to asri.dissensus.ai (handled in worker)

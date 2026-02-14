@@ -136,6 +136,22 @@ def determine_alert_level(asri: float) -> str:
     return "critical"
 
 
+def compute_weighted_asri(
+    stablecoin_risk: float,
+    defi_liquidity_risk: float,
+    contagion_risk: float,
+    arbitrage_opacity: float,
+) -> float:
+    """Compute ASRI from stored sub-index columns using canonical weights."""
+    asri = (
+        stablecoin_risk * ASRI_WEIGHTS["stablecoin_risk"]
+        + defi_liquidity_risk * ASRI_WEIGHTS["defi_liquidity_risk"]
+        + contagion_risk * ASRI_WEIGHTS["contagion_risk"]
+        + arbitrage_opacity * ASRI_WEIGHTS["arbitrage_opacity"]
+    )
+    return round(asri, 1)
+
+
 # =============================================================================
 # Cloudflare D1 Client
 # =============================================================================
@@ -696,16 +712,28 @@ async def run_backfill(
                 result = calculate_asri_from_snapshot(snapshot)
                 records_calculated += 1
 
+                stablecoin_risk = round(result["stablecoin_risk"], 1)
+                defi_liquidity_risk = round(result["defi_liquidity_risk"], 1)
+                contagion_risk = round(result["contagion_risk"], 1)
+                arbitrage_opacity = round(result["arbitrage_opacity"], 1)
+                asri = compute_weighted_asri(
+                    stablecoin_risk=stablecoin_risk,
+                    defi_liquidity_risk=defi_liquidity_risk,
+                    contagion_risk=contagion_risk,
+                    arbitrage_opacity=arbitrage_opacity,
+                )
+
                 record = {
                     "date": date_str,
-                    "asri": result["asri"],
-                    "asri_30d_avg": result["asri"],
+                    # Keep aggregate and component columns exactly consistent.
+                    "asri": asri,
+                    "asri_30d_avg": asri,
                     "trend": "stable",
-                    "alert_level": result["alert_level"],
-                    "stablecoin_risk": result["stablecoin_risk"],
-                    "defi_liquidity_risk": result["defi_liquidity_risk"],
-                    "contagion_risk": result["contagion_risk"],
-                    "arbitrage_opacity": result["arbitrage_opacity"],
+                    "alert_level": determine_alert_level(asri),
+                    "stablecoin_risk": stablecoin_risk,
+                    "defi_liquidity_risk": defi_liquidity_risk,
+                    "contagion_risk": contagion_risk,
+                    "arbitrage_opacity": arbitrage_opacity,
                 }
 
                 if dry_run:

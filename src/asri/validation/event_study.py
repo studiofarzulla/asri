@@ -33,6 +33,8 @@ class CrisisEvent:
 class EventStudyResult:
     """Results from event study analysis for a single event."""
     event: CrisisEvent
+    methodology_profile: str
+    lead_method: str
     
     # Pre-event window analysis
     pre_event_window: tuple[int, int]  # e.g., (-60, -1)
@@ -58,6 +60,69 @@ class EventStudyResult:
     
     # ASRI trajectory
     asri_trajectory: pd.Series  # Full trajectory around event
+
+
+@dataclass(frozen=True)
+class EventStudyConfig:
+    """Configuration bundle for an event-study methodology profile."""
+
+    name: str
+    estimation_window: tuple[int, int]
+    event_window: tuple[int, int]
+    alpha: float
+    lead_method: Literal[
+        "first_sigma_breach",
+        "first_threshold_crossing",
+        "final_sustained_threshold",
+    ]
+    lead_threshold_sigma: float
+    lead_threshold_level: float
+    max_lookback: int
+
+
+METHODOLOGY_PROFILES: dict[str, EventStudyConfig] = {
+    # Historical implementation used in early API payloads.
+    "legacy_v1": EventStudyConfig(
+        name="legacy_v1",
+        estimation_window=(-90, -31),
+        event_window=(-30, 10),
+        alpha=0.05,
+        lead_method="first_sigma_breach",
+        lead_threshold_sigma=1.5,
+        lead_threshold_level=50.0,
+        max_lookback=60,
+    ),
+    # Canonical profile aligned with current paper tables and reproducible outputs.
+    "paper_v2": EventStudyConfig(
+        name="paper_v2",
+        estimation_window=(-90, -31),
+        event_window=(-30, 10),
+        alpha=0.05,
+        lead_method="first_sigma_breach",
+        lead_threshold_sigma=1.5,
+        lead_threshold_level=50.0,
+        max_lookback=30,
+    ),
+    # Alternative specification retained for explicit reconciliation diagnostics.
+    "counterfactual_60d": EventStudyConfig(
+        name="counterfactual_60d",
+        estimation_window=(-60, -31),
+        event_window=(-30, 10),
+        alpha=0.05,
+        lead_method="final_sustained_threshold",
+        lead_threshold_sigma=1.5,
+        lead_threshold_level=50.0,
+        max_lookback=60,
+    ),
+}
+
+
+def get_event_study_config(profile: str) -> EventStudyConfig:
+    """Resolve an event-study methodology profile by name."""
+    if profile not in METHODOLOGY_PROFILES:
+        valid = ", ".join(sorted(METHODOLOGY_PROFILES.keys()))
+        raise ValueError(f"Unknown event study profile '{profile}'. Valid: {valid}")
+    return METHODOLOGY_PROFILES[profile]
 
 
 def compute_cumulative_abnormal_signal(
@@ -134,19 +199,32 @@ def compute_cumulative_abnormal_signal(
 def compute_lead_time(
     asri: pd.Series,
     event_date: datetime,
+    estimation_window: tuple[int, int] = (-90, -31),
     threshold_sigma: float = 1.5,
+    threshold_level: float = 50.0,
+    method: Literal[
+        "first_sigma_breach",
+        "first_threshold_crossing",
+        "final_sustained_threshold",
+    ] = "first_sigma_breach",
     max_lookback: int = 60,
 ) -> int:
     """
     Compute lead time: days before event that ASRI started rising.
     
-    Lead time is defined as the first day (going backwards from event)
-    when ASRI exceeded threshold_sigma standard deviations above mean.
+    Lead-time definitions:
+    - first_sigma_breach: earliest day where ASRI > baseline + sigma*std
+    - first_threshold_crossing: earliest day where ASRI >= fixed threshold_level
+    - final_sustained_threshold: last crossing above threshold_level that remains
+      above threshold through event onset
     
     Args:
         asri: ASRI time series
         event_date: Event date
-        threshold_sigma: Number of std devs for significance
+        estimation_window: Relative window used to estimate baseline moments
+        threshold_sigma: Number of std devs for sigma-based significance
+        threshold_level: Fixed ASRI threshold for threshold-based methods
+        method: Lead-time definition
         max_lookback: Maximum days to look back
         
     Returns:
@@ -157,38 +235,67 @@ def compute_lead_time(
     else:
         event_ts = event_date
     
-    # Get pre-event data
-    lookback_start = event_ts - pd.Timedelta(days=max_lookback + 30)
-    lookback_end = event_ts - pd.Timedelta(days=max_lookback)
-    
-    baseline = asri[(asri.index >= lookback_start) & (asri.index < lookback_end)]
-    
-    if len(baseline) < 10:
+    # Evaluation window where lead alerts are searched.
+    eval_start = event_ts - pd.Timedelta(days=max_lookback)
+    eval_window = asri[(asri.index >= eval_start) & (asri.index <= event_ts)].sort_index()
+    if len(eval_window) == 0:
         return 0
-    
-    baseline_mean = baseline.mean()
-    baseline_std = baseline.std()
-    threshold = baseline_mean + threshold_sigma * baseline_std
-    
-    # Look for first breach going backwards
-    event_window_start = event_ts - pd.Timedelta(days=max_lookback)
-    event_window = asri[(asri.index >= event_window_start) & (asri.index <= event_ts)]
-    
-    lead_days = 0
-    for i, (date, value) in enumerate(event_window.items()):
-        days_before = (event_ts - date).days
-        if value > threshold:
-            lead_days = max(lead_days, days_before)
-    
-    return lead_days
+
+    if method == "first_sigma_breach":
+        est_start = event_ts + pd.Timedelta(days=estimation_window[0])
+        est_end = event_ts + pd.Timedelta(days=estimation_window[1])
+        baseline = asri[(asri.index >= est_start) & (asri.index <= est_end)]
+        if len(baseline) < 10:
+            return 0
+        threshold = baseline.mean() + threshold_sigma * baseline.std()
+        breaches = eval_window[eval_window > threshold]
+        if len(breaches) == 0:
+            return 0
+        first_date = breaches.index.min()
+        return (event_ts - first_date).days
+
+    if method == "first_threshold_crossing":
+        crossings = eval_window[eval_window >= threshold_level]
+        if len(crossings) == 0:
+            return 0
+        first_date = crossings.index.min()
+        return (event_ts - first_date).days
+
+    # final_sustained_threshold
+    idx = eval_window.index
+    vals = eval_window.values
+    candidate_dates: list[pd.Timestamp] = []
+    for i in range(1, len(vals)):
+        crossed_up = vals[i] >= threshold_level and vals[i - 1] < threshold_level
+        if not crossed_up:
+            continue
+        tail = vals[i:]
+        if np.all(tail >= threshold_level):
+            candidate_dates.append(idx[i])
+
+    if len(candidate_dates) == 0:
+        return 0
+
+    # The last crossing that sustains through the event is the actionable warning.
+    sustained_date = max(candidate_dates)
+    return (event_ts - sustained_date).days
 
 
 def run_event_study(
     asri: pd.Series,
     events: list[CrisisEvent],
-    estimation_window: tuple[int, int] = (-90, -31),
-    event_window: tuple[int, int] = (-30, 10),
-    alpha: float = 0.05,
+    estimation_window: tuple[int, int] | None = None,
+    event_window: tuple[int, int] | None = None,
+    alpha: float | None = None,
+    profile: str = "paper_v2",
+    lead_method: Literal[
+        "first_sigma_breach",
+        "first_threshold_crossing",
+        "final_sustained_threshold",
+    ] | None = None,
+    lead_threshold_sigma: float | None = None,
+    lead_threshold_level: float | None = None,
+    max_lookback: int | None = None,
 ) -> list[EventStudyResult]:
     """
     Run event study for multiple crisis events.
@@ -203,28 +310,45 @@ def run_event_study(
     Returns:
         List of EventStudyResult for each event
     """
+    cfg = get_event_study_config(profile)
+    est_window = estimation_window if estimation_window is not None else cfg.estimation_window
+    evt_window = event_window if event_window is not None else cfg.event_window
+    alpha_level = alpha if alpha is not None else cfg.alpha
+    lead_mode = lead_method if lead_method is not None else cfg.lead_method
+    lead_sigma = lead_threshold_sigma if lead_threshold_sigma is not None else cfg.lead_threshold_sigma
+    lead_level = lead_threshold_level if lead_threshold_level is not None else cfg.lead_threshold_level
+    lookback = max_lookback if max_lookback is not None else cfg.max_lookback
+
     results = []
     
     for event in events:
         try:
             # Compute abnormal signal
             abnormal, cas, t_stat, p_value = compute_cumulative_abnormal_signal(
-                asri, event.event_date, estimation_window, event_window
+                asri, event.event_date, est_window, evt_window
             )
             
             # Get trajectory
             evt_ts = pd.Timestamp(event.event_date)
-            traj_start = evt_ts + pd.Timedelta(days=event_window[0])
-            traj_end = evt_ts + pd.Timedelta(days=event_window[1])
+            traj_start = evt_ts + pd.Timedelta(days=evt_window[0])
+            traj_end = evt_ts + pd.Timedelta(days=evt_window[1])
             trajectory = asri[(asri.index >= traj_start) & (asri.index <= traj_end)]
             
             # Get estimation period stats
-            est_start = evt_ts + pd.Timedelta(days=estimation_window[0])
-            est_end = evt_ts + pd.Timedelta(days=estimation_window[1])
+            est_start = evt_ts + pd.Timedelta(days=est_window[0])
+            est_end = evt_ts + pd.Timedelta(days=est_window[1])
             est_data = asri[(asri.index >= est_start) & (asri.index <= est_end)]
             
             # Lead time
-            lead_days = compute_lead_time(asri, event.event_date)
+            lead_days = compute_lead_time(
+                asri=asri,
+                event_date=event.event_date,
+                estimation_window=est_window,
+                threshold_sigma=lead_sigma,
+                threshold_level=lead_level,
+                method=lead_mode,
+                max_lookback=lookback,
+            )
             
             # Peak ASRI
             if len(trajectory) > 0:
@@ -236,15 +360,17 @@ def run_event_study(
             
             results.append(EventStudyResult(
                 event=event,
-                pre_event_window=estimation_window,
+                methodology_profile=cfg.name,
+                lead_method=lead_mode,
+                pre_event_window=est_window,
                 pre_event_mean=est_data.mean() if len(est_data) > 0 else 0,
                 pre_event_std=est_data.std() if len(est_data) > 0 else 0,
-                event_window=event_window,
+                event_window=evt_window,
                 abnormal_signal=abnormal,
                 cumulative_abnormal_signal=cas,
                 t_statistic=t_stat,
                 p_value=p_value,
-                is_significant=p_value < alpha,
+                is_significant=p_value < alpha_level,
                 lead_days=lead_days,
                 peak_asri=peak_asri,
                 peak_date=peak_idx,

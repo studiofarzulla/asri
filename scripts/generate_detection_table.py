@@ -44,8 +44,12 @@ CRISIS_EVENTS = [
 THRESHOLDS = [40, 50, 60, 70]
 
 
-def run_event_study(asri: pd.Series, event_date: datetime,
-                    estimation_window=(-90, -31), event_window=(-30, 10)):
+def run_event_study(
+    asri: pd.Series,
+    event_date: datetime,
+    estimation_window=(-90, -31),
+    event_window=(-30, 10),
+):
     """Run event study for a single event."""
     event_ts = pd.Timestamp(event_date)
 

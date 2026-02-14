@@ -492,15 +492,26 @@ def identify_critical_components(results: list[AblationResult]) -> list[str]:
 
 def generate_synthetic_results() -> list[AblationResult]:
     """
-    Generate synthetic ablation results based on expected behavior.
+    DEPRECATED: This function generates synthetic (hand-constructed) ablation
+    results that were used during early development before the real ablation
+    pipeline was run. The paper now uses actual ablation results computed from
+    backtested data via run_ablation_analysis(). The real results (baseline 3/4
+    detection, Terra/Luna consistently missed) differ substantially from these
+    synthetic values (which claimed 4/4 baseline detection).
 
-    These values are derived from analysis of the sub-index dynamics
-    during crisis periods, reflecting reasonable expectations for
-    component importance.
+    Do NOT use this function for paper results. It is retained only for
+    reference and testing purposes.
 
     Returns:
-        List of AblationResult for paper inclusion
+        List of AblationResult (synthetic, not empirical)
     """
+    import warnings
+    warnings.warn(
+        "generate_synthetic_results() is deprecated. Use run_ablation_analysis() "
+        "with real backtested data instead. Paper results already use real data.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     # Baseline: all 4 crises detected with ~40 day lead time
     baseline = AblationResult(
         excluded_component="None (baseline)",
@@ -609,7 +620,8 @@ def generate_synthetic_results() -> list[AblationResult]:
 
 def main():
     """Run ablation analysis and print results."""
-    # Generate synthetic results for paper
+    # NOTE: Paper uses real ablation results from run_ablation_analysis().
+    # Falling back to synthetic for CLI demo only.
     results = generate_synthetic_results()
 
     print("=" * 70)

@@ -1,0 +1,31 @@
+\begin{table}[htbp]
+\centering
+\caption{Event Study Reconciliation Across Methodology Profiles}
+\label{tab:event_study_reconciliation}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Profile & Event & Peak & CAS & $t$-stat & Lead \\
+\midrule
+counterfactual_60d & Terra/Luna & 48.7 & 21.3 & 1.23 & 0 \\
+ & Celsius/3AC & 71.4 & 525.0 & 30.73 & 14 \\
+ & FTX Collapse & 84.7 & 649.9 & 42.00 & 9 \\
+ & SVB Crisis & 68.7 & 481.6 & 30.99 & 8 \\
+\midrule
+legacy_v1 & Terra/Luna & 48.7 & 100.3 & 5.47 & 40 \\
+ & Celsius/3AC & 71.4 & 521.6 & 29.78 & 36 \\
+ & FTX Collapse & 84.7 & 758.8 & 32.64 & 38 \\
+ & SVB Crisis & 68.7 & 509.0 & 26.91 & 29 \\
+\midrule
+paper_v2 & Terra/Luna & 48.7 & 100.3 & 5.47 & 30 \\
+ & Celsius/3AC & 71.4 & 521.6 & 29.78 & 30 \\
+ & FTX Collapse & 84.7 & 758.8 & 32.64 & 30 \\
+ & SVB Crisis & 68.7 & 509.0 & 26.91 & 29 \\
+\midrule
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Profiles are computed on the same ASRI series to isolate methodological effects.
+\end{tablenotes}
+\end{table}

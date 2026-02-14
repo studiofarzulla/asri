@@ -1,0 +1,57 @@
+{
+  "profile": "paper_v2",
+  "n_events": 4,
+  "n_significant": 4,
+  "avg_lead_days": 29.75,
+  "avg_cas": 472.4224999999999,
+  "events": [
+    {
+      "name": "Terra/Luna",
+      "date": "2022-05",
+      "pre_mean": 40.448,
+      "peak": 48.7,
+      "cas": 100.318,
+      "t_stat": 5.474,
+      "p_value": 3e-06,
+      "lead_days": 30,
+      "significant": true,
+      "lead_method": "first_sigma_breach"
+    },
+    {
+      "name": "Celsius/3AC",
+      "date": "2022-06",
+      "pre_mean": 42.608,
+      "peak": 71.4,
+      "cas": 521.558,
+      "t_stat": 29.781,
+      "p_value": 0.0,
+      "lead_days": 30,
+      "significant": true,
+      "lead_method": "first_sigma_breach"
+    },
+    {
+      "name": "FTX Collapse",
+      "date": "2022-11",
+      "pre_mean": 39.552,
+      "peak": 84.7,
+      "cas": 758.782,
+      "t_stat": 32.64,
+      "p_value": 0.0,
+      "lead_days": 30,
+      "significant": true,
+      "lead_method": "first_sigma_breach"
+    },
+    {
+      "name": "SVB Crisis",
+      "date": "2023-03",
+      "pre_mean": 41.002,
+      "peak": 68.7,
+      "cas": 509.032,
+      "t_stat": 26.915,
+      "p_value": 0.0,
+      "lead_days": 29,
+      "significant": true,
+      "lead_method": "first_sigma_breach"
+    }
+  ]
+}
