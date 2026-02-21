@@ -116,7 +116,7 @@ class ASRIBacktester:
 
     # Sub-index calculation weights (from transform layer)
     STABLECOIN_WEIGHTS = {
-        'tvl_ratio': 0.4,
+        'tvl_risk': 0.4,
         'treasury_stress': 0.3,
         'concentration_hhi': 0.2,
         'peg_volatility': 0.1,
@@ -204,7 +204,7 @@ class ASRIBacktester:
         concentration_risk = normalize_hhi_to_risk(hhi)
 
         stablecoin_inputs = StablecoinRiskInputs(
-            tvl_ratio=tvl_risk,
+            tvl_risk=tvl_risk,
             treasury_stress=treasury_stress,
             concentration_hhi=concentration_risk,
             peg_volatility=10.0,  # Default - can't easily get historical peg data

@@ -5,7 +5,7 @@ Computes sub-indices and aggregate ASRI from raw data inputs.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -222,7 +222,7 @@ def compute_asri(
     alert_level = determine_alert_level(asri_normalized)
 
     return ASRIResult(
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         asri=asri,
         asri_normalized=asri_normalized,
         sub_indices=sub_indices,
