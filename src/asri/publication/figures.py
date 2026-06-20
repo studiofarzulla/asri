@@ -609,81 +609,12 @@ def create_all_figures(
 
 
 if __name__ == "__main__":
-    # Demo with synthetic data
-    import pandas as pd
-
-    print("Running figure generation demo with synthetic data...")
-
-    # Synthetic ASRI
-    dates = pd.date_range("2010-01-01", "2023-12-31", freq="D")
-    np.random.seed(42)
-    base = 35 + 15 * np.sin(np.linspace(0, 6 * np.pi, len(dates)))
-    noise = np.random.normal(0, 5, len(dates))
-    asri = pd.Series(np.clip(base + noise, 0, 100), index=dates, name="ASRI")
-
-    # Add crisis spikes
-    crisis_dates = [
-        datetime(2011, 8, 5),   # US Downgrade
-        datetime(2015, 8, 24),  # China Crash
-        datetime(2020, 3, 16),  # COVID
-        datetime(2022, 3, 7),   # Ukraine
-    ]
-    crisis_labels = ["US Downgrade", "China Crash", "COVID-19", "Ukraine Invasion"]
-
-    for crisis in crisis_dates:
-        mask = (dates >= crisis) & (dates < crisis + pd.Timedelta(days=60))
-        asri[mask] += np.linspace(30, 0, mask.sum())
-
-    asri = asri.clip(0, 100)
-
-    # Synthetic sub-indices
-    sub_indices = pd.DataFrame({
-        "Credit": np.random.uniform(20, 60, len(dates)),
-        "Equity": np.random.uniform(25, 55, len(dates)),
-        "Funding": np.random.uniform(15, 50, len(dates)),
-        "Contagion": np.random.uniform(10, 45, len(dates)),
-    }, index=dates)
-
-    weights = {"Credit": 0.30, "Equity": 0.25, "Funding": 0.25, "Contagion": 0.20}
-
-    # Synthetic regime probs
-    regime_probs = np.random.dirichlet([5, 2, 1], len(dates))
-
-    # Synthetic sensitivity results
-    weight_results = []
-    for sub in weights.keys():
-        for pert in [-0.2, -0.1, 0.0, 0.1, 0.2]:
-            weight_results.append({
-                "sub_index": sub,
-                "perturbation": pert,
-                "mean_asri": 40 + pert * 10 + np.random.uniform(-2, 2),
-                "std_asri": 12 + abs(pert) * 3,
-                "max_asri": 75 + pert * 15,
-            })
-
-    # Synthetic event results
-    event_results = []
-    for name, date in zip(crisis_labels, crisis_dates):
-        window_start = date - pd.Timedelta(days=30)
-        window_end = date + pd.Timedelta(days=30)
-        window_asri = asri[window_start:window_end]
-        event_results.append({
-            "name": name,
-            "date": date,
-            "asri_window": window_asri,
-            "pre_mean": window_asri[:30].mean(),
-            "post_mean": window_asri[-30:].mean(),
-        })
-
-    # Generate all figures
-    create_all_figures(
-        asri=asri,
-        sub_indices=sub_indices,
-        weights=weights,
-        regime_probs=regime_probs,
-        crisis_dates=crisis_dates,
-        crisis_labels=crisis_labels,
-        weight_results=weight_results,
-        event_results=event_results,
-        output_dir="figures/demo/",
+    # The previous synthetic-data demo (np.random ASRI / sub-indices / regimes /
+    # sensitivity results) was removed for data integrity. Figures are produced
+    # from REAL data via the analysis pipeline; see scripts/real_dy_hmm_analysis.py
+    # and scripts/compute_roc_metrics.py (load_real_data) for the real data path
+    # that feeds create_all_figures().
+    raise SystemExit(
+        "Synthetic figure demo removed. Run the real ASRI analysis pipeline to "
+        "generate figure inputs; this module only exposes create_all_figures()."
     )

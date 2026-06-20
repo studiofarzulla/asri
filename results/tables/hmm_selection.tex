@@ -1,0 +1,22 @@
+\begin{table}[H]
+\begin{threeparttable}
+\centering
+\caption{HMM Model Selection Criteria}
+\label{tab:hmm_selection}
+\small
+\begin{tabular}{@{}c*{3}{r}@{}}
+\toprule
+States & Log-Likelihood & AIC & BIC \\
+\midrule
+2 & ${-}$19,945 & 39,952 & 40,123 \\
+3 & ${-}$19,043 & 38,185 & 38,461 \\
+4 & ${-}$18,540 & 37,222 & 37,614 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Gaussian HMM with full covariance, 10 random initializations per state count, best by log-likelihood.
+\item Log-likelihood increases monotonically with state count, as expected for nested models.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

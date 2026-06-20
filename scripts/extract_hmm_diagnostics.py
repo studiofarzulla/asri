@@ -20,22 +20,56 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from asri.regime.hmm import RegimeDetector, format_regime_table
 
 
-def run_hmm_with_full_diagnostics(data: pd.DataFrame, n_regimes: int = 3):
+def fit_hmm_best_of_n(data: pd.DataFrame, n_regimes: int, n_restarts: int = 10):
     """
-    Run HMM and extract comprehensive diagnostics.
+    Fit the Gaussian HMM with `n_restarts` random initializations (seeds 0..n_restarts-1)
+    and return the result with the highest log-likelihood.
+
+    This implements the methodology the paper actually claims ("10 random restarts,
+    select the model with highest log-likelihood"). The previous released code used a
+    single seed (random_state=42) with no restart loop, which reproduced only a bad
+    local optimum (3-state LL worse than 2-state -- impossible for converged nested
+    models).
+    """
+    best_ll = -np.inf
+    best_result = None
+    best_seed = None
+    for seed in range(n_restarts):
+        detector = RegimeDetector(
+            n_regimes=n_regimes,
+            n_iterations=1000,
+            convergence_threshold=1e-4,
+            random_state=seed,
+        )
+        detector.fit(data)
+        r = detector.result
+        if r.log_likelihood > best_ll:
+            best_ll = r.log_likelihood
+            best_result = r
+            best_seed = seed
+    return best_result, best_seed
+
+
+def selection_sweep(data: pd.DataFrame, ks=(2, 3, 4), n_restarts: int = 10):
+    """Run a real model-selection sweep over `ks` states, best-by-LL per K."""
+    rows = []
+    for K in ks:
+        r, seed = fit_hmm_best_of_n(data, n_regimes=K, n_restarts=n_restarts)
+        rows.append(dict(states=K, best_seed=seed, log_likelihood=r.log_likelihood,
+                         aic=r.aic, bic=r.bic))
+    return rows
+
+
+def run_hmm_with_full_diagnostics(data: pd.DataFrame, n_regimes: int = 3,
+                                  n_restarts: int = 10):
+    """
+    Run HMM (10 random restarts, best-by-LL) and extract comprehensive diagnostics.
 
     Returns dict with all information requested by reviewer.
     """
-    # Fit HMM
-    detector = RegimeDetector(
-        n_regimes=n_regimes,
-        n_iterations=1000,
-        convergence_threshold=1e-4,
-        random_state=42,
-    )
-
-    detector.fit(data)
-    result = detector.result
+    # Fit HMM with restart loop (matches the methods-section protocol)
+    result, best_seed = fit_hmm_best_of_n(data, n_regimes=n_regimes,
+                                          n_restarts=n_restarts)
 
     # Extract diagnostics
     diagnostics = {
@@ -216,6 +250,15 @@ def main():
     print(f"Date range: {sub_indices.index.min()} to {sub_indices.index.max()}")
     print()
 
+    # Real 2/3/4-state model-selection sweep (10 restarts, best-by-LL per K)
+    print("Model selection sweep (10 random restarts per K, best by log-likelihood):")
+    sweep = selection_sweep(sub_indices, ks=(2, 3, 4), n_restarts=10)
+    print(f"  {'K':>2} {'seed':>4} {'LogL':>12} {'AIC':>12} {'BIC':>12}")
+    for row in sweep:
+        print(f"  {row['states']:>2} {row['best_seed']:>4} {row['log_likelihood']:>12.1f} "
+              f"{row['aic']:>12.1f} {row['bic']:>12.1f}")
+    print()
+
     # Run HMM with 3 regimes (as in paper)
     diagnostics, result = run_hmm_with_full_diagnostics(sub_indices, n_regimes=3)
 
@@ -246,6 +289,39 @@ def main():
     # Save tables
     tables_dir = PROJECT_ROOT / "results" / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
+
+    # Model-selection table (regenerated from the real sweep, replacing the
+    # hand-typed tab:hmm_selection whose numbers appeared nowhere in the code)
+    sel_lines = [
+        r"\begin{table}[H]",
+        r"\begin{threeparttable}",
+        r"\centering",
+        r"\caption{HMM Model Selection Criteria}",
+        r"\label{tab:hmm_selection}",
+        r"\small",
+        r"\begin{tabular}{@{}c*{3}{r}@{}}",
+        r"\toprule",
+        r"States & Log-Likelihood & AIC & BIC \\",
+        r"\midrule",
+    ]
+    for row in sweep:
+        sel_lines.append(
+            f"{row['states']} & ${{-}}${abs(row['log_likelihood']):,.0f} & "
+            f"{row['aic']:,.0f} & {row['bic']:,.0f} \\\\"
+        )
+    sel_lines.extend([
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\begin{tablenotes}",
+        r"\small",
+        r"\item Gaussian HMM with full covariance, 10 random initializations per state count, best by log-likelihood.",
+        r"\item Log-likelihood increases monotonically with state count, as expected for nested models.",
+        r"\end{tablenotes}",
+        r"\end{threeparttable}",
+        r"\end{table}",
+    ])
+    (tables_dir / "hmm_selection.tex").write_text("\n".join(sel_lines))
+    print(f"Saved: {tables_dir / 'hmm_selection.tex'}")
 
     # HMM diagnostics table
     hmm_latex = format_hmm_diagnostics_latex(diagnostics)

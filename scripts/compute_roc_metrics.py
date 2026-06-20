@@ -296,82 +296,69 @@ def compute_roc_with_bootstrap_ci(
     )
 
 
-def generate_synthetic_data(seed: int = 42) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def load_real_data(
+    parquet_path: Path,
+    window_start: str = "2021-01-01",
+    window_end: str = "2024-12-31",
+    roll_window: int = 60,
+    var_lags: int = 1,
+    fevd_horizon: int = 10,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Generate synthetic ASRI and benchmark data calibrated to paper results.
+    Load REAL ASRI series and compute a REAL rolling Diebold-Yilmaz connectedness
+    benchmark from the actual sub-indices, then build crisis labels from the four
+    historical events. No synthetic data.
 
-    Target performance (from paper Section 5.4):
-    - Both achieve 75% detection (3/4 crises detected)
-    - ASRI: 33.5% precision at threshold 50
-    - D-Y: 22.4% precision at threshold mean+1std
+    Crisis labels: 1 if a historical crisis onset falls within the 30-day forward
+    (pre-crisis) window of a given date -- identical to generate_roc_figure.py
+    (the labeling that produces the reproducible ASRI ROC).
+
+    D-Y benchmark: generalized (Pesaran-Shin) FEVD total connectedness from a
+    `roll_window`-day rolling VAR(`var_lags`), forecast horizon `fevd_horizon`,
+    computed in scripts/real_dy_hmm_analysis.py (ordering-invariant).
 
     Returns:
-        (crisis_labels, asri_scores, benchmark_scores)
+        (crisis_labels, asri_scores, dy_scores) aligned on a common date index.
     """
-    rng = np.random.default_rng(seed)
+    from datetime import datetime
 
-    # Simulate sample period matching paper (~1,100 days, Jan 2021 - Feb 2024)
-    n_days = 1100
-    # Four crisis periods with 30-day pre-crisis windows
-    # Terra/Luna (May 2022), Celsius (Jun 2022), FTX (Nov 2022), SVB (Mar 2023)
-    crisis_starts = [150, 180, 330, 450]  # Approximate indices
-    detected = [False, True, True, True]  # Terra missed, others detected
+    # Reuse the real D-Y implementation rather than re-deriving it here.
+    import importlib.util
 
-    # Create crisis labels (30-day pre-crisis = positive class)
-    labels = np.zeros(n_days)
-    for start in crisis_starts:
-        pre_crisis_start = max(0, start - 30)
-        labels[pre_crisis_start:start] = 1
+    _spec = importlib.util.spec_from_file_location(
+        "real_dy_hmm_analysis", Path(__file__).parent / "real_dy_hmm_analysis.py"
+    )
+    _rd = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_rd)
 
-    # Generate ASRI scores calibrated to:
-    # - Detection: 3/4 crises exceed threshold 50
-    # - Precision: ~33% (alerts during crisis / total alerts)
-    # - Baseline mean ~42, elevated during detected crises
+    crisis_events = [
+        datetime(2022, 5, 12),   # Terra/Luna
+        datetime(2022, 6, 17),   # Celsius/3AC
+        datetime(2022, 11, 11),  # FTX
+        datetime(2023, 3, 11),   # SVB
+    ]
+    sub_cols = ["stablecoin_risk", "defi_liquidity_risk",
+                "contagion_risk", "arbitrage_opacity"]
 
-    asri = rng.normal(38, 8, n_days)  # Baseline lower
+    df = pd.read_parquet(parquet_path).sort_index()
+    if not isinstance(df.index, pd.DatetimeIndex):
+        if "date" in df.columns:
+            df = df.set_index("date")
+        df.index = pd.to_datetime(df.index)
 
-    # Add noise that occasionally exceeds threshold (false positives)
-    # Target: ~180 alerts with ~60 true positives = 33% precision
-    for i in range(n_days):
-        if rng.random() < 0.08:  # ~8% chance of elevated reading
-            asri[i] += rng.uniform(10, 25)
+    win = df.loc[window_start:window_end]
 
-    # Detected crises: push above threshold
-    for start, det in zip(crisis_starts, detected):
-        pre_crisis_start = max(0, start - 30)
-        window_len = min(30, start - pre_crisis_start)
-        if det:
-            # Detected crisis: clear elevation above 50
-            asri[pre_crisis_start:start] = rng.normal(62, 8, window_len)
-        else:
-            # Missed crisis (Terra): stays below threshold
-            asri[pre_crisis_start:start] = rng.normal(46, 5, window_len)
+    # Real rolling D-Y connectedness (computed on full sample for warm-up, then sliced)
+    roll = _rd.rolling_connectedness(
+        df[sub_cols].dropna(), window=roll_window, lags=var_lags, horizon=fevd_horizon
+    ).loc[window_start:window_end].dropna()
 
-    asri = np.clip(asri, 0, 100)
+    asri_win = win["asri"].dropna()
+    common = asri_win.index.intersection(roll.index)
 
-    # Generate D-Y connectedness calibrated to:
-    # - Detection: 3/4 crises
-    # - Precision: ~22% (lower than ASRI)
-    # - Threshold: mean + 1 std ~= 0.38
-
-    dy = rng.normal(0.28, 0.10, n_days)  # Mean ~28%, std ~10%
-
-    # More false positives for D-Y (lower precision)
-    for i in range(n_days):
-        if rng.random() < 0.12:  # More frequent false alarms
-            dy[i] += rng.uniform(0.10, 0.30)
-
-    # Detected crises
-    for start, det in zip(crisis_starts, detected):
-        pre_crisis_start = max(0, start - 30)
-        window_len = min(30, start - pre_crisis_start)
-        if det:
-            dy[pre_crisis_start:start] = rng.normal(0.52, 0.12, window_len)
-        else:
-            # Missed - stays below threshold
-            dy[pre_crisis_start:start] = rng.normal(0.32, 0.08, window_len)
-
-    dy = np.clip(dy, 0, 1)
+    asri = asri_win.loc[common].values
+    dy = roll.loc[common].values
+    labels = _rd.create_crisis_labels(common, crisis_events, window_days=30)
 
     return labels, asri, dy
 
@@ -481,14 +468,21 @@ def main():
         "--seed",
         type=int,
         default=42,
-        help="Random seed",
+        help="Random seed (bootstrap resampling only)",
+    )
+    parser.add_argument(
+        "--data",
+        type=str,
+        default=str(Path(__file__).parent.parent / "results" / "data" / "asri_history.parquet"),
+        help="Path to asri_history.parquet (REAL data)",
     )
     args = parser.parse_args()
 
     print("Computing ROC metrics with bootstrap confidence intervals...")
 
-    # Generate synthetic data (in production, load actual backtest results)
-    labels, asri_scores, dy_scores = generate_synthetic_data(args.seed)
+    # Load REAL ASRI series and compute a REAL rolling Diebold-Yilmaz benchmark.
+    # (The previous synthetic generator was removed -- it fabricated both series.)
+    labels, asri_scores, dy_scores = load_real_data(Path(args.data))
 
     print(f"  Data: {len(labels)} observations, {int(np.sum(labels))} crisis-imminent days")
 
