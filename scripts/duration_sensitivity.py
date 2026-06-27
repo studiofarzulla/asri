@@ -257,18 +257,26 @@ def main():
             df.set_index("date", inplace=True)
         df.index = pd.to_datetime(df.index)
 
-    # For Treasury yield, we'll simulate based on the SCR values
-    # In practice, this would come from FRED DGS10
-    # We'll use a proxy based on typical yield levels during the sample period
-    np.random.seed(42)
+    # Real Treasury yield (FRED DGS10, 10-year constant maturity) is REQUIRED for
+    # an honest duration-sensitivity result. We do NOT synthesise a yield path: a
+    # fabricated series would manufacture the duration result rather than measure it.
+    # Load the real series or abort cleanly.
+    treasury_path = PROJECT_ROOT / "results" / "data" / "treasury_dgs10.csv"
+    if not treasury_path.exists():
+        print(
+            f"Real Treasury yield data not found at {treasury_path}.\n"
+            "This analysis requires FRED DGS10 (10-year Treasury constant maturity)\n"
+            "aligned to the ASRI sample. Download DGS10 from FRED and save it as a CSV\n"
+            "with 'date' and 'yield' columns, then re-run. Aborting without generating\n"
+            "any synthetic yield."
+        )
+        return
 
-    # Create synthetic Treasury yield time series
-    # Roughly matching 2021-2026 yield trajectory
-    n = len(df)
-    base_yield = np.linspace(1.5, 4.5, n)  # Trend from low to high rates
-    noise = np.random.normal(0, 0.3, n)
-    treasury_yield = pd.Series(base_yield + noise, index=df.index)
-    treasury_yield = treasury_yield.clip(1.0, 6.0)  # Realistic bounds
+    ty = pd.read_csv(treasury_path)
+    ty["date"] = pd.to_datetime(ty["date"])
+    treasury_yield = ty.set_index("date")["yield"].astype(float)
+    # Align real yields to the ASRI sample; carry forward across non-trading days.
+    treasury_yield = treasury_yield.reindex(df.index).ffill().bfill()
 
     print("=" * 70)
     print("DURATION-ADJUSTED SCR SENSITIVITY ANALYSIS")

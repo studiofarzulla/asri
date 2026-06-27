@@ -522,126 +522,45 @@ def format_ciss_comparison_table(result: CISSResult) -> str:
 
 
 if __name__ == "__main__":
-    """
-    Demonstration with synthetic data.
+    """Demonstration of CISS aggregation on REAL ASRI sub-index data."""
+    from pathlib import Path
 
-    Creates two scenarios:
-    1. Normal period: low, uncorrelated sub-indices
-    2. Crisis period: high, correlated sub-indices
+    print("=" * 70)
+    print("CISS Aggregation Demonstration - Real Sub-Index Data")
+    print("=" * 70)
 
-    Shows how CISS amplifies during crises while linear doesn't.
-    """
-    np.random.seed(42)
-
-    # Generate 500 days of synthetic data
-    n_days = 500
-    dates = pd.date_range("2020-01-01", periods=n_days, freq="D")
-
-    # Base stress levels (0-100 scale)
-    base_stress = 30  # Normal regime
-    crisis_stress = 70  # Crisis regime
-
-    # Create regime indicator (crisis from day 200-300)
-    regime = np.zeros(n_days)
-    regime[200:300] = 1  # Crisis period
-
-    # Generate sub-indices with regime-dependent correlation
-    data = np.zeros((n_days, 4))
-
-    for t in range(n_days):
-        if regime[t] == 0:
-            # Normal: low correlation, moderate stress
-            mean = base_stress * np.ones(4) + np.random.randn(4) * 5
-            # Low correlation via independent noise
-            noise = np.random.randn(4) * 8
-        else:
-            # Crisis: high correlation, high stress
-            mean = crisis_stress * np.ones(4) + np.random.randn(4) * 3
-            # High correlation via common factor
-            common_factor = np.random.randn() * 10
-            idiosyncratic = np.random.randn(4) * 3
-            noise = common_factor + idiosyncratic
-
-        data[t] = np.clip(mean + noise, 0, 100)
-
-    # Create DataFrame with canonical column names
-    df = pd.DataFrame(
-        data,
-        index=dates,
-        columns=CISSAggregator.CANONICAL_COLUMNS,
+    data_path = (
+        Path(__file__).resolve().parents[3]
+        / "results" / "data" / "asri_history.parquet"
     )
+    if not data_path.exists():
+        print(
+            f"demo requires real sub-index data ({data_path} not found); "
+            "run the ASRI pipeline first (see scripts/compare_aggregation.py)."
+        )
+    else:
+        full = pd.read_parquet(data_path)
+        if not isinstance(full.index, pd.DatetimeIndex):
+            if "date" in full.columns:
+                full = full.set_index("date")
+            full.index = pd.to_datetime(full.index)
 
-    print("=" * 70)
-    print("CISS Aggregation Demonstration")
-    print("=" * 70)
-    print(f"\nSynthetic data: {n_days} days")
-    print("- Normal period: days 1-199, 301-500 (low stress, low correlation)")
-    print("- Crisis period: days 200-300 (high stress, HIGH correlation)")
-    print()
+        df = full[CISSAggregator.CANONICAL_COLUMNS].dropna()
+        print(f"\nReal data: {len(df)} observations "
+              f"({df.index.min().date()} to {df.index.max().date()})")
+        print()
 
-    # Compute CISS aggregation
-    aggregator = CISSAggregator(decay_factor=0.94)
-    result = aggregator.compare_with_linear(df)
+        aggregator = CISSAggregator(decay_factor=0.94)
+        result = aggregator.compare_with_linear(df)
 
-    # Summary statistics
-    print("Summary Statistics:")
-    print("-" * 50)
-    print(f"CISS ASRI:   mean={result.asri_ciss.mean():.1f}, "
-          f"std={result.asri_ciss.std():.1f}, "
-          f"max={result.asri_ciss.max():.1f}")
-    print(f"Linear ASRI: mean={result.asri_linear.mean():.1f}, "
-          f"std={result.asri_linear.std():.1f}, "
-          f"max={result.asri_linear.max():.1f}")
-    print()
+        print("Summary Statistics:")
+        print("-" * 50)
+        print(f"CISS ASRI:   mean={result.asri_ciss.mean():.1f}, "
+              f"std={result.asri_ciss.std():.1f}, max={result.asri_ciss.max():.1f}")
+        print(f"Linear ASRI: mean={result.asri_linear.mean():.1f}, "
+              f"std={result.asri_linear.std():.1f}, max={result.asri_linear.max():.1f}")
+        print()
 
-    # Crisis period analysis
-    crisis_mask = (dates >= "2020-07-19") & (dates <= "2020-10-27")  # ~days 200-300
-
-    print("Crisis Period Analysis (days 200-300):")
-    print("-" * 50)
-    crisis_ciss = result.asri_ciss[crisis_mask].mean()
-    crisis_linear = result.asri_linear[crisis_mask].mean()
-    crisis_contrib = result.correlation_contribution[crisis_mask].mean()
-    crisis_corr = result.mean_correlation[crisis_mask].mean()
-
-    print(f"Mean CISS ASRI:            {crisis_ciss:.1f}")
-    print(f"Mean Linear ASRI:          {crisis_linear:.1f}")
-    print(f"Correlation Contribution:  {crisis_contrib:+.1f}")
-    print(f"Mean Pairwise Correlation: {crisis_corr:.3f}")
-    print()
-
-    # Normal period analysis
-    normal_mask = ~crisis_mask
-
-    print("Normal Period Analysis (outside crisis):")
-    print("-" * 50)
-    normal_ciss = result.asri_ciss[normal_mask].mean()
-    normal_linear = result.asri_linear[normal_mask].mean()
-    normal_contrib = result.correlation_contribution[normal_mask].mean()
-    normal_corr = result.mean_correlation[normal_mask].mean()
-
-    print(f"Mean CISS ASRI:            {normal_ciss:.1f}")
-    print(f"Mean Linear ASRI:          {normal_linear:.1f}")
-    print(f"Correlation Contribution:  {normal_contrib:+.1f}")
-    print(f"Mean Pairwise Correlation: {normal_corr:.3f}")
-    print()
-
-    # Final correlation matrix
-    print("Final Correlation Matrix:")
-    print("-" * 50)
-    print(result.final_correlation_matrix.round(3).to_string())
-    print()
-
-    # Key insight
-    print("=" * 70)
-    print("KEY INSIGHT:")
-    print("=" * 70)
-    amplification = crisis_contrib - normal_contrib
-    print(f"\nDuring crisis, CISS amplifies stress by an additional {amplification:.1f} points")
-    print("compared to normal periods. This captures systemic contagion:")
-    print("when sub-indices become correlated, total risk exceeds the sum of parts.")
-    print()
-    print("Linear aggregation misses this amplification because it assumes")
-    print("sub-indices are independent. Portfolio theory captures what")
-    print("simple averaging cannot: correlated crashes are worse than")
-    print("uncorrelated ones.")
+        print("Final Correlation Matrix:")
+        print("-" * 50)
+        print(result.final_correlation_matrix.round(3).to_string())

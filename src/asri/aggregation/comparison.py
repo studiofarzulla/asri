@@ -1071,86 +1071,39 @@ class AggregationComparison:
 # Demo / Testing
 # =============================================================================
 
+
 if __name__ == "__main__":
-    print("Running aggregation comparison demo with synthetic data...")
-
-    # Generate synthetic sub-indices
-    np.random.seed(42)
-    dates = pd.date_range("2022-01-01", "2024-12-31", freq="D")
-    n = len(dates)
-
-    # Base signals with crisis spikes
-    base = 35 + 10 * np.sin(np.linspace(0, 4 * np.pi, n))
-    noise = np.random.normal(0, 5, (n, 4))
-
-    subindices = pd.DataFrame(
-        {
-            "Market": base + noise[:, 0],
-            "Liquidity": base * 0.9 + noise[:, 1] + 5,
-            "Credit": base * 0.8 + noise[:, 2] + 10,
-            "Contagion": base * 1.1 + noise[:, 3] - 5,
-        },
-        index=dates,
+    # Demo on REAL sub-index data only (no synthetic/fabricated series).
+    # The full multi-method comparison (CISS / copula / regime) is produced by
+    # the real pipeline entrypoint: scripts/compare_aggregation.py
+    data_path = (
+        Path(__file__).resolve().parents[3]
+        / "results" / "data" / "asri_history.parquet"
     )
-
-    # Add crisis spikes
-    for crisis in CRISIS_EVENTS:
-        try:
-            event_date = pd.Timestamp(crisis.date)
-            if event_date < dates.min() or event_date > dates.max():
-                continue
-
-            crisis_mask = (
-                (dates >= pd.Timestamp(crisis.window_start))
-                & (dates <= pd.Timestamp(crisis.window_end))
-            )
-            spike = np.linspace(0, 35, crisis_mask.sum())
-            spike = np.concatenate([spike[:len(spike)//2], spike[len(spike)//2:][::-1]])
-
-            for col in subindices.columns:
-                subindices.loc[crisis_mask, col] += spike + np.random.normal(0, 3, len(spike))
-        except Exception:
-            continue
-
-    subindices = subindices.clip(0, 100)
-
-    # Run comparison
-    comparator = AggregationComparison()
-
-    # Compute linear (other methods would need actual aggregators)
-    linear_asri = comparator.compute_linear_asri(subindices)
-
-    # Synthetic alternatives for demo
-    asri_series = {
-        "linear": linear_asri,
-        "ciss": linear_asri * 1.05 + np.random.normal(0, 2, len(linear_asri)),
-        "copula": linear_asri * 0.95 + np.random.normal(0, 3, len(linear_asri)),
-        "regime": linear_asri + np.random.normal(0, 4, len(linear_asri)),
-    }
-
-    for method, series in asri_series.items():
-        asri_series[method] = pd.Series(
-            np.clip(series, 0, 100),
-            index=dates,
-            name=f"ASRI_{method}",
+    if not data_path.exists():
+        print(
+            f"demo requires real sub-index data ({data_path} not found); "
+            "run the ASRI pipeline first, then see scripts/compare_aggregation.py "
+            "for the full method comparison."
         )
+    else:
+        df = pd.read_parquet(data_path)
+        if not isinstance(df.index, pd.DatetimeIndex):
+            if "date" in df.columns:
+                df = df.set_index("date")
+            df.index = pd.to_datetime(df.index)
 
-    comparator.results = asri_series
+        subindices = df[
+            ["stablecoin_risk", "defi_liquidity_risk",
+             "contagion_risk", "arbitrage_opacity"]
+        ].dropna()
 
-    # Compute metrics
-    print("\nComputing crisis metrics...")
-    metrics = comparator.compute_crisis_metrics(asri_series)
-    print(metrics)
+        comparator = AggregationComparison()
+        linear_asri = comparator.compute_linear_asri(subindices)
 
-    # Generate figures
-    print("\nGenerating comparison figures...")
-    comparator.plot_method_comparison(output_path="figures/demo/aggregation_comparison.pdf")
-    comparator.plot_crisis_zoom(crisis=CRISIS_EVENTS[0], output_path="figures/demo/crisis_zoom_terra.pdf")
-
-    # Generate table
-    print("\nLaTeX table:")
-    print(comparator.format_comparison_table())
-
-    # Summary
-    print("\nFindings summary:")
-    print(comparator.summarize_findings())
+        print(f"Loaded {len(subindices)} real observations "
+              f"({subindices.index.min().date()} to {subindices.index.max().date()}).")
+        print(f"Linear ASRI: mean={linear_asri.mean():.2f}, "
+              f"std={linear_asri.std():.2f}, max={linear_asri.max():.2f}")
+        print("\nFull multi-method comparison (CISS / copula / regime) requires the "
+              "real aggregators; run scripts/compare_aggregation.py.")

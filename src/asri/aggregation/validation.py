@@ -980,80 +980,32 @@ class OutOfSampleValidator:
 
 
 # -----------------------------------------------------------------------------
-# Demonstration with synthetic data
+# Command-line entry point (real data only)
 # -----------------------------------------------------------------------------
+
+
+def _load_real_subindices() -> pd.DataFrame:
+    """Load the released real ASRI sub-index series for validation.
+
+    The previous synthetic-data demo (np.random-generated sub-indices with an
+    injected fake August-2024 crisis) has been removed because it fabricated
+    validation inputs. Wire this to the released dataset / database before
+    running the out-of-sample validation.
+    """
+    raise NotImplementedError(
+        "Real ASRI sub-index series required. Load the released data export or "
+        "the database (DATETIME-indexed columns: stablecoin_risk, "
+        "defi_liquidity_risk, contagion_risk, arbitrage_opacity) before "
+        "running out-of-sample validation. The synthetic-data demo was removed."
+    )
+
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("Out-of-Sample Validation - Synthetic Data Demonstration")
+    print("Out-of-Sample Validation - Real Data")
     print("=" * 70)
 
-    # Generate synthetic sub-index data spanning 2021-2024
-    np.random.seed(42)
-
-    dates = pd.date_range("2021-01-01", "2024-12-31", freq="D")
-    n = len(dates)
-
-    # Base stress levels with trend and seasonality
-    t = np.arange(n)
-    trend = 35 + 0.005 * t  # Slight upward trend
-    seasonality = 5 * np.sin(2 * np.pi * t / 365)  # Annual cycle
-
-    # Generate correlated sub-indices
-    common_factor = np.random.normal(0, 1, n)
-
-    stablecoin = trend + seasonality + 15 * common_factor + np.random.normal(0, 5, n)
-    defi = trend * 0.9 + seasonality * 0.8 + 12 * common_factor + np.random.normal(0, 6, n)
-    contagion = trend * 1.1 + seasonality * 1.2 + 18 * common_factor + np.random.normal(0, 4, n)
-    arbitrage = trend * 0.8 + seasonality * 0.9 + 10 * common_factor + np.random.normal(0, 7, n)
-
-    # Inject August 2024 crisis
-    crisis_start = pd.Timestamp("2024-07-15")
-    crisis_peak = pd.Timestamp("2024-08-05")
-    crisis_end = pd.Timestamp("2024-08-20")
-
-    for date, col_name, col_data in [
-        (crisis_peak, 'stablecoin', stablecoin),
-        (crisis_peak, 'defi', defi),
-        (crisis_peak, 'contagion', contagion),
-        (crisis_peak, 'arbitrage', arbitrage),
-    ]:
-        crisis_mask = (dates >= crisis_start) & (dates <= crisis_end)
-        days_to_peak = (crisis_peak - crisis_start).days
-        days_after_peak = (crisis_end - crisis_peak).days
-
-        # Build up before peak, decay after
-        ramp_up = np.linspace(0, 35, days_to_peak)
-        ramp_down = np.linspace(35, 10, days_after_peak + 1)
-        spike = np.concatenate([ramp_up, ramp_down])[:crisis_mask.sum()]
-
-        if col_name == 'stablecoin':
-            stablecoin[crisis_mask] += spike
-        elif col_name == 'defi':
-            defi[crisis_mask] += spike * 0.9
-        elif col_name == 'contagion':
-            contagion[crisis_mask] += spike * 1.1
-        else:
-            arbitrage[crisis_mask] += spike * 0.7
-
-    # Clip to valid range
-    stablecoin = np.clip(stablecoin, 0, 100)
-    defi = np.clip(defi, 0, 100)
-    contagion = np.clip(contagion, 0, 100)
-    arbitrage = np.clip(arbitrage, 0, 100)
-
-    # Create DataFrame
-    subindices = pd.DataFrame({
-        'stablecoin_risk': stablecoin,
-        'defi_liquidity_risk': defi,
-        'contagion_risk': contagion,
-        'arbitrage_opacity': arbitrage,
-    }, index=dates)
-
-    print(f"\nGenerated {n} days of synthetic data")
-    print(f"Date range: {dates.min().date()} to {dates.max().date()}")
-    print(f"\nSub-index summary:")
-    print(subindices.describe().round(2))
+    subindices = _load_real_subindices()
 
     # Run validation
     print("\n" + "-" * 70)

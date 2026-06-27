@@ -253,10 +253,11 @@ def handle_methodology():
         "update_frequency": "daily",
         "backtest_period": "2021-01-01 to 2024-12-31",
         "validation_results": {
-            "crises_detected": "4/4 (100%)",
-            "average_lead_time_days": 30,
+            "crises_detected": "4/4 significant abnormal signal (t 5.47-32.64); fixed-threshold operational detection 3/4 (Terra/Luna missed in-sample); walk-forward 4/4 out-of-sample",
+            "average_lead_time_days": 19,
+            "walk_forward_lead_days": 26,
             "event_study_significance": "all p < 0.01",
-            "structural_stability": "Chow p = 0.99",
+            "structural_stability": "Chow p = 0.78 (stable)",
         },
         "documentation_url": "https://asri.dissensus.ai/docs",
         "paper_doi": "10.5281/zenodo.17918239",
@@ -270,9 +271,9 @@ def handle_regime():
         "regime_name": "Moderate",
         "probability": 0.78,
         "transition_probs": {
-            "to_low_risk": 0.023,
-            "stay_moderate": 0.938,
-            "to_elevated": 0.039,
+            "to_low_risk": 0.003,
+            "stay_moderate": 0.992,
+            "to_crisis": 0.005,
         },
     })
 
@@ -281,28 +282,28 @@ def handle_validation():
     """Get validation test results."""
     return json_response({
         "stationarity": {
-            "asri": {"adf_stat": -5.22, "adf_p": 0.000, "kpss": 0.31, "conclusion": "stationary"},
+            "asri": {"adf_stat": -4.05, "adf_p": 0.001, "kpss": 0.65, "conclusion": "stationary"},
             "stablecoin_risk": {"adf_stat": -3.76, "adf_p": 0.003, "conclusion": "trend-stationary"},
             "defi_liquidity": {"adf_stat": -4.34, "adf_p": 0.000, "conclusion": "stationary"},
-            "contagion_risk": {"adf_stat": -3.71, "adf_p": 0.004, "conclusion": "trend-stationary"},
-            "arb_opacity": {"adf_stat": -4.33, "adf_p": 0.000, "conclusion": "stationary"},
+            "contagion_risk": {"adf_stat": -2.73, "adf_p": 0.069, "kpss": 2.06, "conclusion": "non-stationary"},
+            "regulatory_opacity": {"adf_stat": -3.71, "adf_p": 0.020, "conclusion": "trend-stationary"},
         },
         "event_study": {
-            "terra_luna": {"date": "2022-05", "t_stat": 5.47, "p_value": 0.000, "lead_days": 30, "significant": True},
-            "celsius_3ac": {"date": "2022-06", "t_stat": 29.78, "p_value": 0.000, "lead_days": 30, "significant": True},
-            "ftx_collapse": {"date": "2022-11", "t_stat": 32.64, "p_value": 0.000, "lead_days": 30, "significant": True},
-            "svb_crisis": {"date": "2023-03", "t_stat": 26.91, "p_value": 0.000, "lead_days": 29, "significant": True},
-            "summary": {"detection_rate": 1.0, "avg_lead_time": 29.8},
-            "methodology_profile": "paper_v2",
+            "terra_luna": {"date": "2022-05", "t_stat": 5.47, "p_value": 0.000, "lead_days": None, "detected_fixed_threshold": False, "significant": True},
+            "celsius_3ac": {"date": "2022-06", "t_stat": 29.78, "p_value": 0.000, "lead_days": 19, "detected_fixed_threshold": True, "significant": True},
+            "ftx_collapse": {"date": "2022-11", "t_stat": 32.64, "p_value": 0.000, "lead_days": 22, "detected_fixed_threshold": True, "significant": True},
+            "svb_crisis": {"date": "2023-03", "t_stat": 26.91, "p_value": 0.000, "lead_days": 15, "detected_fixed_threshold": True, "significant": True},
+            "summary": {"fixed_threshold_detection_rate": 0.75, "fixed_threshold_avg_lead": 18.7, "walk_forward_detection_rate": 1.0, "walk_forward_avg_lead": 25.75},
+            "methodology_profile": "paper_canon",
         },
         "regime_model": {
             "n_regimes": 3,
-            "regime_1": {"frequency": 0.246, "mean_risk": 34.0, "persistence": 0.942, "label": "Low Risk"},
-            "regime_2": {"frequency": 0.439, "mean_risk": 35.5, "persistence": 0.961, "label": "Moderate"},
-            "regime_3": {"frequency": 0.315, "mean_risk": 49.3, "persistence": 0.969, "label": "Elevated"},
+            "regime_1": {"frequency": 0.198, "mean_risk": 31.8, "persistence": 0.997, "label": "Low Risk"},
+            "regime_2": {"frequency": 0.563, "mean_risk": 36.8, "persistence": 0.992, "label": "Moderate"},
+            "regime_3": {"frequency": 0.238, "mean_risk": 48.2, "persistence": 0.980, "label": "Crisis"},
         },
         "robustness": {
-            "chow_test": {"statistic": 0.007, "critical": 3.002, "p_value": 0.993, "stable": True},
+            "chow_test": {"statistic": 0.248, "critical": 3.002, "p_value": 0.78, "stable": True},
             "cusum": {"statistic": 4.715, "breaks_detected": True, "note": "breaks correspond to crisis events"},
         },
     })
@@ -333,11 +334,11 @@ async def handle_subindex(env, name: str):
             "components": ["Cross-protocol exposure", "Bridge concentration", "Correlation clustering"],
         },
         "arbitrage_opacity": {
-            "name": "Arbitrage Opacity",
+            "name": "Regulatory Opacity Risk",
             "weight": 0.20,
             "current_value": None,
-            "description": "Measures market efficiency and information asymmetry",
-            "components": ["CEX-DEX spread", "Cross-chain arbitrage", "MEV activity"],
+            "description": "Measures regulatory uncertainty and policy opacity affecting the crypto-asset ecosystem",
+            "components": ["Regulatory enforcement intensity", "Policy uncertainty", "Jurisdictional fragmentation"],
         },
     }
 

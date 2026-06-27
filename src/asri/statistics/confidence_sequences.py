@@ -242,23 +242,23 @@ def propagate_data_quality_uncertainty(
     )
 
 
-def generate_synthetic_confidence_scores(
+def documented_confidence_scores(
     asri: pd.Series,
 ) -> pd.DataFrame:
     """
-    Generate synthetic confidence scores for demonstration.
+    Per-component data-quality confidence scores from the documented data
+    pipeline (Section: Data Quality).
 
-    In production, these would come from actual data quality tracking.
-    For the paper, we simulate realistic patterns:
+    The previous implementation added np.random temporal noise to these levels,
+    which fabricated per-day variation; that synthetic path has been removed.
+    The scores below are the documented constant confidence levels reflecting
+    real data-source quality:
     - Stablecoin data: high confidence (daily from DeFi Llama)
-    - DeFi liquidity: high confidence
-    - Contagion: medium confidence (some proxy components)
-    - Arbitrage opacity: low confidence (placeholder Sent_t)
+    - DeFi liquidity: high confidence (daily protocol data)
+    - Contagion: medium confidence (some proxy components: Bank_t, Link_t)
+    - Regulatory opacity: low confidence (placeholder Sent_t)
     """
-    n = len(asri)
-    np.random.seed(42)
-
-    # Base confidence levels (reflecting data quality documentation)
+    # Documented confidence levels (reflecting data quality assessment).
     base_confidence = {
         "stablecoin_risk": 0.90,      # High: daily TVL data
         "defi_liquidity_risk": 0.85,   # High: daily protocol data
@@ -266,12 +266,11 @@ def generate_synthetic_confidence_scores(
         "arbitrage_opacity": 0.50,     # Low: Sent_t placeholder
     }
 
-    # Add some temporal variation
-    scores = {}
-    for component, base in base_confidence.items():
-        noise = np.random.normal(0, 0.05, n)
-        score = np.clip(base + noise, 0.3, 1.0)
-        scores[component] = score
+    # Broadcast the documented constants across the (real) ASRI index.
+    scores = {
+        component: np.full(len(asri), level)
+        for component, level in base_confidence.items()
+    }
 
     return pd.DataFrame(scores, index=asri.index)
 

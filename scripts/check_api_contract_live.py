@@ -71,15 +71,15 @@ def main() -> None:
         failures,
     )
     assert_true(
-        methodology.get("validation_results", {}).get("average_lead_time_days") == 30,
+        methodology.get("validation_results", {}).get("average_lead_time_days") == 19,
         "methodology endpoint average_lead_time_days mismatch",
         failures,
     )
 
     es = validation.get("event_study", {})
     summary = es.get("summary", {})
-    assert_true(es.get("methodology_profile") == "paper_v2", "validation event_study methodology_profile mismatch", failures)
-    assert_true(summary.get("avg_lead_time") == 29.8, "validation avg_lead_time mismatch", failures)
+    assert_true(es.get("methodology_profile") == "paper_canon", "validation event_study methodology_profile mismatch", failures)
+    assert_true(summary.get("fixed_threshold_avg_lead") == 18.7, "validation fixed_threshold_avg_lead mismatch", failures)
     assert_true(es.get("terra_luna", {}).get("t_stat") == 5.47, "validation Terra t-stat mismatch", failures)
 
     if failures:

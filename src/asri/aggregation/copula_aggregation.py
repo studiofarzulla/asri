@@ -1030,178 +1030,66 @@ def compute_copula_weighted_asri(
 
 
 if __name__ == "__main__":
-    """
-    Demonstration with synthetic data simulating sub-index behavior.
-
-    We generate data with:
-    1. Common factor (systemic risk latent variable)
-    2. Idiosyncratic noise per sub-index
-    3. Asymmetric tail dependence via Clayton copula simulation
-    """
-    import matplotlib.pyplot as plt
-
-    np.random.seed(42)
-    n = 500  # Trading days
-
-    # Generate correlated sub-indices with tail dependence
-    # Use Clayton copula to generate dependent uniform variables
+    """Demonstration of copula aggregation on REAL ASRI sub-index data."""
+    from pathlib import Path
 
     print("=" * 60)
-    print("ASRI Copula Aggregation - Synthetic Data Demonstration")
+    print("ASRI Copula Aggregation - Real Sub-Index Data")
     print("=" * 60)
 
-    # Simple approach: generate via common factor + idiosyncratic
-    common_factor = np.random.normal(0, 1, n)
+    data_path = (
+        Path(__file__).resolve().parents[3]
+        / "results" / "data" / "asri_history.parquet"
+    )
+    if not data_path.exists():
+        print(
+            f"demo requires real sub-index data ({data_path} not found); "
+            "run the ASRI pipeline first (see scripts/compare_aggregation.py)."
+        )
+    else:
+        df = pd.read_parquet(data_path)
+        if not isinstance(df.index, pd.DatetimeIndex):
+            if "date" in df.columns:
+                df = df.set_index("date")
+            df.index = pd.to_datetime(df.index)
 
-    # Sub-indices as factor + noise, scaled to 0-100
-    stablecoin = 50 + 15 * common_factor + np.random.normal(0, 5, n)
-    defi = 45 + 12 * common_factor + np.random.normal(0, 6, n)
-    contagion = 55 + 18 * common_factor + np.random.normal(0, 4, n)
-    arbitrage = 40 + 10 * common_factor + np.random.normal(0, 7, n)
+        subindices = df[
+            ["stablecoin_risk", "defi_liquidity_risk",
+             "contagion_risk", "arbitrage_opacity"]
+        ].dropna()
 
-    # Clip to valid range and add some extreme events
-    stablecoin = np.clip(stablecoin, 0, 100)
-    defi = np.clip(defi, 0, 100)
-    contagion = np.clip(contagion, 0, 100)
-    arbitrage = np.clip(arbitrage, 0, 100)
+        print(f"\nLoaded {len(subindices)} real observations "
+              f"({subindices.index.min().date()} to {subindices.index.max().date()})")
 
-    # Inject crisis periods (coordinated spikes)
-    crisis_periods = [50, 150, 300, 400]
-    for t in crisis_periods:
-        stablecoin[t:t+10] += 25
-        defi[t:t+10] += 20
-        contagion[t:t+10] += 30
-        arbitrage[t:t+10] += 15
+        print("\n" + "-" * 40)
+        print("Fitting Clayton copula...")
+        print("-" * 40)
+        aggregator = CopulaAggregator(copula_family="clayton")
+        fit_result = aggregator.fit_copula(subindices)
+        print(f"Copula parameter (theta): {fit_result.parameter:.3f}")
+        print(f"Lower tail dependence (lambda_L): {fit_result.tail_dependence.lower_tail:.3f}")
+        print(f"Upper tail dependence (lambda_U): {fit_result.tail_dependence.upper_tail:.3f}")
+        print(f"Kendall's tau (implied): {fit_result.tail_dependence.kendall_tau:.3f}")
 
-    # Clip again after crisis injection
-    stablecoin = np.clip(stablecoin, 0, 100)
-    defi = np.clip(defi, 0, 100)
-    contagion = np.clip(contagion, 0, 100)
-    arbitrage = np.clip(arbitrage, 0, 100)
+        print("\n" + "-" * 40)
+        print("Kendall's Tau Matrix:")
+        print("-" * 40)
+        print(aggregator.compute_kendall_tau_matrix(subindices).round(3))
 
-    # Create DataFrame
-    dates = pd.date_range("2022-01-01", periods=n, freq="B")
-    subindices = pd.DataFrame({
-        "stablecoin_risk": stablecoin,
-        "defi_liquidity_risk": defi,
-        "contagion_risk": contagion,
-        "arbitrage_opacity": arbitrage,
-    }, index=dates)
+        print("\n" + "-" * 40)
+        print("Aggregation with Tail Boost:")
+        print("-" * 40)
+        standard_weights = np.array([0.30, 0.25, 0.25, 0.20])
+        asri_standard = subindices.dot(standard_weights)
+        asri_boosted = aggregator.aggregate_with_tail_boost(subindices)
+        tail_events = aggregator.detect_tail_event(subindices, threshold=0.90)
+        n_tail = int(tail_events.sum())
+        print(f"Tail events detected: {n_tail} / {len(tail_events)} "
+              f"({100 * n_tail / len(tail_events):.1f}%)")
+        print(f"\nStandard ASRI: mean={asri_standard.mean():.2f}, std={asri_standard.std():.2f}")
+        print(f"Boosted ASRI:  mean={asri_boosted.mean():.2f}, std={asri_boosted.std():.2f}")
 
-    print(f"\nGenerated {n} observations")
-    print(f"\nSub-index summary:")
-    print(subindices.describe().round(2))
-
-    # Fit Clayton copula
-    print("\n" + "-" * 40)
-    print("Fitting Clayton copula...")
-    print("-" * 40)
-
-    aggregator = CopulaAggregator(copula_family="clayton")
-    fit_result = aggregator.fit_copula(subindices)
-
-    print(f"Copula parameter (theta): {fit_result.parameter:.3f}")
-    print(f"Lower tail dependence (lambda_L): {fit_result.tail_dependence.lower_tail:.3f}")
-    print(f"Upper tail dependence (lambda_U): {fit_result.tail_dependence.upper_tail:.3f}")
-    print(f"Kendall's tau (implied): {fit_result.tail_dependence.kendall_tau:.3f}")
-
-    # Compute Kendall's tau matrix
-    print("\n" + "-" * 40)
-    print("Kendall's Tau Matrix:")
-    print("-" * 40)
-    tau_matrix = aggregator.compute_kendall_tau_matrix(subindices)
-    print(tau_matrix.round(3))
-
-    # Compare copula families
-    print("\n" + "-" * 40)
-    print("Copula Family Comparison:")
-    print("-" * 40)
-    comparison = aggregator.compare_copula_families(subindices)
-    print(comparison[["family", "theta", "lambda_L", "lambda_U", "kendall_tau"]].round(3))
-
-    # Compute aggregated ASRI with tail boost
-    print("\n" + "-" * 40)
-    print("Aggregation with Tail Boost:")
-    print("-" * 40)
-
-    # Standard aggregation (no boost)
-    standard_weights = np.array([0.30, 0.25, 0.25, 0.20])
-    asri_standard = subindices.dot(standard_weights)
-
-    # Copula-boosted aggregation
-    asri_boosted = aggregator.aggregate_with_tail_boost(subindices)
-
-    # Count tail events
-    tail_events = aggregator.detect_tail_event(subindices, threshold=0.90)
-    n_tail = tail_events.sum()
-
-    print(f"Tail events detected: {n_tail} / {len(tail_events)} ({100*n_tail/len(tail_events):.1f}%)")
-    print(f"\nStandard ASRI: mean={asri_standard.mean():.2f}, std={asri_standard.std():.2f}")
-    print(f"Boosted ASRI:  mean={asri_boosted.mean():.2f}, std={asri_boosted.std():.2f}")
-
-    # Show difference during tail events
-    diff = asri_boosted - asri_standard
-    print(f"\nBoost during tail events: +{diff[tail_events].mean():.2f} on average")
-    print(f"Boost during normal times: +{diff[~tail_events].mean():.2f} on average")
-
-    # Generate LaTeX table
-    print("\n" + "-" * 40)
-    print("LaTeX Table:")
-    print("-" * 40)
-    print(aggregator.format_latex_table())
-
-    # Plot results
-    print("\n" + "-" * 40)
-    print("Generating visualization...")
-    print("-" * 40)
-
-    fig = plt.figure(figsize=(14, 10))
-
-    # Subplot 1: Sub-indices over time
-    ax1 = fig.add_subplot(2, 2, 1)
-    for col in subindices.columns:
-        ax1.plot(subindices.index, subindices[col], alpha=0.7, label=col)
-    ax1.axhline(y=subindices.quantile(0.90).mean(), color="red",
-                linestyle="--", alpha=0.5, label="90th percentile")
-    ax1.set_title("Sub-Index Time Series")
-    ax1.set_ylabel("Risk Level")
-    ax1.legend(loc="upper right", fontsize=8)
-
-    # Subplot 2: Standard vs Boosted ASRI
-    ax2 = fig.add_subplot(2, 2, 2)
-    ax2.plot(asri_standard.index, asri_standard, alpha=0.7, label="Standard ASRI")
-    ax2.plot(asri_boosted.index, asri_boosted, alpha=0.7, label="Copula-Boosted ASRI")
-    # Mark tail events
-    ax2.scatter(asri_boosted.index[tail_events], asri_boosted[tail_events],
-                color="red", s=20, alpha=0.5, label="Tail Events")
-    ax2.set_title("ASRI: Standard vs Copula-Boosted")
-    ax2.set_ylabel("ASRI Value")
-    ax2.legend()
-
-    # Subplot 3: Boost magnitude over time
-    ax3 = fig.add_subplot(2, 2, 3)
-    ax3.fill_between(diff.index, 0, diff, alpha=0.5, label="Boost Amount")
-    ax3.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
-    ax3.set_title("Tail Boost Contribution")
-    ax3.set_ylabel("Boost (Copula - Standard)")
-    ax3.legend()
-
-    # Subplot 4: Tail dependence structure
-    ax4 = fig.add_subplot(2, 2, 4)
-    uniform = aggregator.transform_to_uniform(subindices)
-    ax4.scatter(uniform[:, 0], uniform[:, 1], alpha=0.3, s=10)
-    ax4.set_xlabel("Stablecoin Risk (uniform)")
-    ax4.set_ylabel("DeFi Risk (uniform)")
-    ax4.set_title(f"Copula Structure (lambda_L = {fit_result.tail_dependence.lower_tail:.3f})")
-    ax4.set_xlim(0, 1)
-    ax4.set_ylim(0, 1)
-
-    plt.tight_layout()
-    plt.savefig("/tmp/copula_aggregation_demo.png", dpi=150, bbox_inches="tight")
-    print("Saved: /tmp/copula_aggregation_demo.png")
-
-    plt.show()
-
-    print("\n" + "=" * 60)
-    print("Demonstration complete!")
-    print("=" * 60)
+        print("\n" + "-" * 40)
+        print("LaTeX Table:")
+        print("-" * 40)
+        print(aggregator.format_latex_table())

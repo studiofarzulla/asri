@@ -487,142 +487,36 @@ def identify_critical_components(results: list[AblationResult]) -> list[str]:
 
 
 # =============================================================================
-# Synthetic Data for Testing / Paper Results
-# =============================================================================
-
-def generate_synthetic_results() -> list[AblationResult]:
-    """
-    DEPRECATED: This function generates synthetic (hand-constructed) ablation
-    results that were used during early development before the real ablation
-    pipeline was run. The paper now uses actual ablation results computed from
-    backtested data via run_ablation_analysis(). The real results (baseline 3/4
-    detection, Terra/Luna consistently missed) differ substantially from these
-    synthetic values (which claimed 4/4 baseline detection).
-
-    Do NOT use this function for paper results. It is retained only for
-    reference and testing purposes.
-
-    Returns:
-        List of AblationResult (synthetic, not empirical)
-    """
-    import warnings
-    warnings.warn(
-        "generate_synthetic_results() is deprecated. Use run_ablation_analysis() "
-        "with real backtested data instead. Paper results already use real data.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    # Baseline: all 4 crises detected with ~40 day lead time
-    baseline = AblationResult(
-        excluded_component="None (baseline)",
-        excluded_short="None",
-        weights=BASELINE_WEIGHTS,
-        weights_str="30/25/25/20",
-        detection_rate="4/4",
-        detected_count=4,
-        total_crises=4,
-        avg_lead_time=40.0,
-        lead_time_delta=0.0,
-        crisis_results=[
-            CrisisDetectionResult("Terra/Luna", True, 73.0, 6),
-            CrisisDetectionResult("Celsius/3AC", True, 73.0, 54),
-            CrisisDetectionResult("FTX Collapse", True, 73.0, 60),
-            CrisisDetectionResult("SVB Crisis", True, 74.6, 40),
-        ],
-    )
-
-    # Without SCR: Miss Terra/Luna (stablecoin-driven), reduced lead time
-    # SCR is critical for stablecoin crises
-    no_scr = AblationResult(
-        excluded_component="stablecoin_risk",
-        excluded_short="SCR",
-        weights=compute_ablated_weights(BASELINE_WEIGHTS, "stablecoin_risk"),
-        weights_str="0/36/36/29",
-        detection_rate="3/4",
-        detected_count=3,
-        total_crises=4,
-        avg_lead_time=35.0,
-        lead_time_delta=-5.0,
-        crisis_results=[
-            CrisisDetectionResult("Terra/Luna", False, 48.2, 0),  # Miss!
-            CrisisDetectionResult("Celsius/3AC", True, 68.5, 48),
-            CrisisDetectionResult("FTX Collapse", True, 65.3, 55),
-            CrisisDetectionResult("SVB Crisis", True, 62.1, 35),
-        ],
-    )
-
-    # Without DLR: Still detect all, but reduced lead time
-    # DLR is important but has redundancy with other indices
-    no_dlr = AblationResult(
-        excluded_component="defi_liquidity_risk",
-        excluded_short="DLR",
-        weights=compute_ablated_weights(BASELINE_WEIGHTS, "defi_liquidity_risk"),
-        weights_str="40/0/33/27",
-        detection_rate="4/4",
-        detected_count=4,
-        total_crises=4,
-        avg_lead_time=32.0,
-        lead_time_delta=-8.0,
-        crisis_results=[
-            CrisisDetectionResult("Terra/Luna", True, 66.4, 4),
-            CrisisDetectionResult("Celsius/3AC", True, 62.8, 42),
-            CrisisDetectionResult("FTX Collapse", True, 58.7, 45),
-            CrisisDetectionResult("SVB Crisis", True, 64.2, 37),
-        ],
-    )
-
-    # Without CR: Miss FTX (contagion-driven), reduced detection
-    # CR is critical for contagion/counterparty crises
-    no_cr = AblationResult(
-        excluded_component="contagion_risk",
-        excluded_short="CR",
-        weights=compute_ablated_weights(BASELINE_WEIGHTS, "contagion_risk"),
-        weights_str="40/33/0/27",
-        detection_rate="3/4",
-        detected_count=3,
-        total_crises=4,
-        avg_lead_time=28.0,
-        lead_time_delta=-12.0,
-        crisis_results=[
-            CrisisDetectionResult("Terra/Luna", True, 62.1, 5),
-            CrisisDetectionResult("Celsius/3AC", True, 58.4, 38),
-            CrisisDetectionResult("FTX Collapse", False, 47.8, 0),  # Miss!
-            CrisisDetectionResult("SVB Crisis", True, 55.9, 30),
-        ],
-    )
-
-    # Without OR: Detect all but with slightly reduced lead time
-    # OR amplifies signals but isn't primary driver
-    no_or = AblationResult(
-        excluded_component="arbitrage_opacity",
-        excluded_short="OR",
-        weights=compute_ablated_weights(BASELINE_WEIGHTS, "arbitrage_opacity"),
-        weights_str="38/31/31/0",
-        detection_rate="4/4",
-        detected_count=4,
-        total_crises=4,
-        avg_lead_time=36.0,
-        lead_time_delta=-4.0,
-        crisis_results=[
-            CrisisDetectionResult("Terra/Luna", True, 70.2, 5),
-            CrisisDetectionResult("Celsius/3AC", True, 69.8, 50),
-            CrisisDetectionResult("FTX Collapse", True, 67.4, 52),
-            CrisisDetectionResult("SVB Crisis", True, 71.3, 37),
-        ],
-    )
-
-    return [baseline, no_scr, no_dlr, no_cr, no_or]
-
-
-# =============================================================================
 # Main Entry Point
 # =============================================================================
 
+
+def _load_real_subindices() -> pd.DataFrame:
+    """Load the released real ASRI sub-index series for the ablation study.
+
+    The previous synthetic-results helper (hand-constructed ablation numbers
+    that claimed a 4/4 baseline detection) has been removed because it
+    fabricated paper-adjacent results that contradicted the real pipeline
+    (real baseline is 3/4, Terra/Luna missed). Ablation results must come from
+    run_ablation_analysis() on the released sub-index data.
+    """
+    raise NotImplementedError(
+        "Real ASRI sub-index series required (DATETIME-indexed columns: "
+        "stablecoin_risk, defi_liquidity_risk, contagion_risk, "
+        "arbitrage_opacity). Load the released data export or the database, then "
+        "run_ablation_analysis(sub_indices). See scripts/investigate_ablation.py "
+        "for the real-data driver. The synthetic results helper was removed."
+    )
+
+
 def main():
-    """Run ablation analysis and print results."""
-    # NOTE: Paper uses real ablation results from run_ablation_analysis().
-    # Falling back to synthetic for CLI demo only.
-    results = generate_synthetic_results()
+    """Run the ablation analysis on real data and print results."""
+    sub_indices = _load_real_subindices()
+    results = run_ablation_analysis(
+        sub_indices=sub_indices,
+        threshold=50.0,
+        pre_window_days=30,
+    )
 
     print("=" * 70)
     print("ASRI ABLATION STUDY RESULTS")

@@ -1251,163 +1251,34 @@ def format_transition_analysis_table(analyses: list[TransitionAnalysis]) -> str:
 
 
 # -----------------------------------------------------------------------------
-# Demonstration with synthetic data
+# Command-line entry point (real data only)
 # -----------------------------------------------------------------------------
+
+
+def _load_real_subindices() -> pd.DataFrame:
+    """Load the released real ASRI sub-index series for regime aggregation.
+
+    The previous synthetic-data demo (np.random-generated sub-indices with a
+    hand-set "true" regime sequence and an accuracy-vs-synthetic-truth report)
+    has been removed because it fabricated inputs and a ground-truth label.
+    Wire this to the released dataset / database before running the analysis.
+    """
+    raise NotImplementedError(
+        "Real ASRI sub-index series required (DATETIME-indexed columns matching "
+        "SUBINDEX_COLUMNS). Load the released data export or the database before "
+        "running regime aggregation. The synthetic-data demo was removed."
+    )
+
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("Regime-Conditional ASRI Aggregation - Synthetic Data Demo")
+    print("Regime-Conditional ASRI Aggregation - Real Data")
     print("=" * 70)
 
-    # Set random seed for reproducibility
-    np.random.seed(42)
-
-    # Generate synthetic sub-index data with regime structure
-    n_days = 500
-    dates = pd.date_range("2022-01-01", periods=n_days, freq="D")
-
-    # True regime sequence: mostly moderate with periods of crisis and low-risk
-    true_regimes = np.zeros(n_days, dtype=int)
-    true_regimes[50:80] = 2  # Crisis period 1
-    true_regimes[150:170] = 0  # Low risk period
-    true_regimes[250:290] = 2  # Crisis period 2
-    true_regimes[350:380] = 2  # Crisis period 3
-    true_regimes[true_regimes == 0] = 1  # Default moderate
-    true_regimes[:50] = 1
-    true_regimes[80:150] = 1
-    true_regimes[170:250] = 1
-    true_regimes[290:350] = 1
-    true_regimes[380:] = 1
-
-    # Regime-specific means for sub-indices
-    regime_means = {
-        0: np.array([25, 30, 35, 30]),  # Low risk: all low
-        1: np.array([35, 40, 40, 35]),  # Moderate: medium levels
-        2: np.array([70, 65, 55, 45]),  # Crisis: high stablecoin/liquidity
-    }
-
-    # Generate data
-    subindex_data = np.zeros((n_days, 4))
-    for t in range(n_days):
-        regime = true_regimes[t]
-        mean = regime_means[regime]
-        # Add autocorrelated noise
-        noise = np.random.multivariate_normal(
-            np.zeros(4),
-            np.eye(4) * 25,  # Variance
-        )
-        if t > 0:
-            subindex_data[t] = 0.7 * subindex_data[t - 1] + 0.3 * (mean + noise)
-        else:
-            subindex_data[t] = mean + noise
-
-    # Clip to valid range
-    subindex_data = np.clip(subindex_data, 0, 100)
-
-    subindices = pd.DataFrame(
-        subindex_data,
-        index=dates,
-        columns=SUBINDEX_COLUMNS,
-    )
-
-    print("\nSynthetic Data Summary:")
-    print(subindices.describe().round(2))
-
-    # Create and fit aggregator
-    print("\n" + "-" * 70)
-    print("Fitting HMM...")
+    subindices = _load_real_subindices()
 
     aggregator = RegimeAggregator(n_regimes=3, use_hmmlearn=True)
     aggregator.fit_hmm(subindices, n_iter=100)
-
-    print("HMM fitted successfully.")
-
-    # Get regime probabilities
-    probs = aggregator.get_regime_probabilities(subindices)
-    states = aggregator.get_most_likely_regimes(subindices)
-
-    print("\nDetected Regime Frequencies:")
-    for k in range(3):
-        freq = (states == k).mean()
-        names = ["Low Risk", "Moderate", "Crisis"]
-        print(f"  {names[k]}: {freq:.1%}")
-
-    # Compare true vs detected regimes
-    accuracy = (states == true_regimes).mean()
-    print(f"\nRegime Detection Accuracy (vs synthetic truth): {accuracy:.1%}")
-
-    # Run full analysis
-    print("\n" + "-" * 70)
-    print("Running full analysis...")
-
     result = aggregator.full_analysis(subindices)
 
-    print("\nRegime-Weighted vs Baseline ASRI:")
-    print(f"  Mean regime-weighted: {result.asri_regime_weighted.mean():.2f}")
-    print(f"  Mean baseline:        {result.asri_baseline.mean():.2f}")
-    print(f"  Mean absolute diff:   {result.improvement:.2f}")
-
-    print("\nRegime Means (ASRI by detected regime):")
-    for k, mean_asri in result.regime_means.items():
-        names = ["Low Risk", "Moderate", "Crisis"]
-        print(f"  {names[k]}: {mean_asri:.1f}")
-
-    # Effective weights at specific points
-    print("\nEffective Weights (sample timepoints):")
-    eff = result.effective_weights
-    sample_dates = [dates[60], dates[200], dates[260]]  # Crisis, moderate, crisis
-    for d in sample_dates:
-        if d in eff.index:
-            w = eff.loc[d]
-            regime = states[dates.get_loc(d)]
-            names = ["Low Risk", "Moderate", "Crisis"]
-            print(f"  {d.date()} (Regime: {names[regime]}): " +
-                  f"SCR={w.iloc[0]:.2f}, DLR={w.iloc[1]:.2f}, " +
-                  f"CR={w.iloc[2]:.2f}, OR={w.iloc[3]:.2f}")
-
-    # Simulate crisis dates for transition analysis
-    crisis_dates = ["2022-02-25", "2022-09-15", "2022-12-20"]
-
-    print("\n" + "-" * 70)
-    print("Analyzing regime transitions around 'crisis' events...")
-
-    transitions = aggregator.analyze_regime_transitions(subindices, crisis_dates)
-
-    for t in transitions:
-        print(f"\n  {t.event_name}:")
-        print(f"    P(Crisis) increase: {t.crisis_regime_prob_increase:+.2f}")
-        print(f"    Lead time: {t.transition_lead_days} days")
-
-    # Print LaTeX tables
-    print("\n" + "-" * 70)
-    print("LaTeX Table: Regime Weights")
-    print("-" * 70)
     print(format_regime_weights_table(aggregator.regime_weights))
-
-    print("\n" + "-" * 70)
-    print("LaTeX Table: Transition Analysis")
-    print("-" * 70)
-    print(format_transition_analysis_table(transitions))
-
-    # Test model save/load
-    print("\n" + "-" * 70)
-    print("Testing model persistence...")
-
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
-        temp_path = f.name
-
-    aggregator.save_model(temp_path)
-    loaded = RegimeAggregator.load_model(temp_path)
-
-    # Verify loaded model produces same results
-    loaded_asri = loaded.aggregate(subindices)
-    diff = np.abs(loaded_asri - result.asri_regime_weighted).max()
-    print(f"Max difference after save/load: {diff:.10f}")
-
-    import os
-    os.unlink(temp_path)
-
-    print("\n" + "=" * 70)
-    print("Demo complete.")
-    print("=" * 70)

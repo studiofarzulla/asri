@@ -17,7 +17,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from asri.statistics.confidence_sequences import (
     compute_asri_confidence_sequence,
     propagate_data_quality_uncertainty,
-    generate_synthetic_confidence_scores,
+    documented_confidence_scores,
     format_uncertainty_summary_latex,
 )
 
@@ -48,7 +48,7 @@ def main():
 
     # Data quality-based uncertainty
     print("Computing data quality-based uncertainty bands...")
-    confidence_scores = generate_synthetic_confidence_scores(asri)
+    confidence_scores = documented_confidence_scores(asri)
     bands = propagate_data_quality_uncertainty(asri, confidence_scores)
 
     print(f"Average band width: {(bands.upper - bands.lower).mean():.1f}")

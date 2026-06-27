@@ -13,13 +13,14 @@ FTX Collapse & 2022-11 & 39.6 & 84.7 & 758.8*** & 32.64 & 30 & Yes \\
 SVB Crisis & 2023-03 & 41.0 & 68.7 & 509.0*** & 26.91 & 29 & Yes \\
 \midrule
 \multicolumn{8}{l}{Significant events: 4/4 (100\%)} \\
-\multicolumn{8}{l}{Average lead time: 29.8 days} \\
+\multicolumn{8}{l}{Lead time: $\geq$29 days (capped)} \\
 \multicolumn{8}{l}{Average CAS: 472.4} \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item CAS = Cumulative Abnormal Signal. Lead Days = days before event ASRI elevated.
+\item CAS = Cumulative Abnormal Signal. Lead Days = days before event the 1.5$\sigma$ event-study signal first elevates, lookback-capped at 30 days; the 1.5$\sigma$ signal is in fact elevated across essentially the entire pre-window, so these indicate sustained pre-crisis elevation rather than a precise 30-day horizon.
+\item Operational early-warning leads are more conservative: fixed-threshold (ASRI $\geq 50$) first-crossing $\approx$19 days (Celsius 19 / FTX 22 / SVB 15; Terra/Luna not detected in-sample), and walk-forward first-crossing $\approx$26 days (mean 25.75).
 \item *** $p<0.01$, ** $p<0.05$, * $p<0.10$
 \end{tablenotes}
 \end{table}
