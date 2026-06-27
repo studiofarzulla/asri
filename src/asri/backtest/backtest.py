@@ -3,6 +3,16 @@ ASRI Backtester
 
 Validates ASRI methodology against historical crises and
 provides database backfill functionality.
+
+WARNING -- look-ahead in the live-recompute path: ``validate_crisis`` and
+``calculate_for_date`` recompute sub-indices by querying live data sources
+(DeFiLlama protocols, bridge lists) at call time -- i.e. using *current* state
+projected onto historical dates. Values produced this way are NOT what the
+historical system would have observed and must not be used for historical
+detection claims. The canonical historical ASRI series is the one persisted in
+``results/data/asri_history.parquet``; all detection, lead-time, and event-study
+results reported in the paper are computed from that series, not from this
+live-recompute path.
 """
 
 from dataclasses import dataclass, field

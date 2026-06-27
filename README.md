@@ -1,17 +1,21 @@
 # ASRI: Aggregated Systemic Risk Index
 
-**Real-time systemic risk monitoring for cryptocurrency markets**
+**Interpretable, channel-decomposed monitoring of crypto-native systemic stress**
 
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17918239-blue.svg)](https://doi.org/10.5281/zenodo.17918239)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![arXiv](https://img.shields.io/badge/arXiv-2602.03874-b31b1b.svg)](https://arxiv.org/abs/2602.03874)
 [![Status](https://img.shields.io/badge/Status-arXiv_Preprint-b31b1b.svg)](https://arxiv.org/abs/2602.03874)
 
-**Working Paper DAI-2509** | [Dissensus AI](https://dissensus.ai) | [Dashboard](https://asri.dissensus.ai)
+**Working Paper DAI-2509** | [Dissensus](https://dissensus.ai) | [Dashboard](https://asri.dissensus.ai)
 
 ## Abstract
 
-This paper introduces the Aggregated Systemic Risk Index (ASRI), the first composite measure designed to monitor systemic risks arising from DeFi-TradFi interconnection. ASRI aggregates four sub-indices -- Stablecoin Concentration Risk, DeFi Liquidity Risk, Contagion Risk, and Regulatory Opacity Risk -- into a daily composite score. Validated against four major crypto crises (Terra/Luna, Celsius/3AC, FTX, SVB), event study analysis detects statistically significant abnormal stress for all four events (t-statistics 5.47--32.64, all p < 0.01), with threshold-based detection (fixed ASRI >= 50) identifying three of four at an average first-crossing lead time of ~19 days; walk-forward validation detects all four out-of-sample at a ~26-day mean lead. A Hidden Markov Model identifies three risk regimes (Low Risk, Moderate, Crisis) with persistence exceeding 97%. On a common day-level sample, ASRI achieves higher discrimination than the Diebold-Yilmaz connectedness benchmark (AUROC 0.866 vs. 0.670; precision at the Youden-optimal threshold 35.2% vs. 14.9%). Out-of-sample testing on 2024--2025 data shows no sustained false alarms (a single non-systemic August 2024 elevation, peak 58.8). ASRI captures DeFi-specific vulnerabilities -- composability risk, flash loan exposure, and RWA linkages -- that traditional measures such as SRISK and CoVaR cannot accommodate. An open-source implementation with live dashboard is provided.
+The Aggregated Systemic Risk Index (ASRI) is a composite measure for **retrospective, interpretable monitoring** of systemic stress arising from DeFi-TradFi interconnection. It aggregates four sub-indices -- Stablecoin Concentration Risk, DeFi Liquidity Risk, Contagion Risk, and Regulatory Opacity Risk -- into a daily composite, decomposable back to its channels. It is **not** a validated real-time early-warning system.
+
+Against four major crypto crises (Terra/Luna, Celsius/3AC, FTX, SVB), an HAC-robust event study finds statistically significant abnormal stress for **three of four** events (Terra/Luna non-significant under serial-correlation-robust inference, t = 1.72, p = 0.086); fixed-threshold detection (ASRI >= 50) likewise identifies three of four, with Terra/Luna's pre-window peak (46.0) below the threshold. A Hidden Markov Model labels three regimes (Low/Moderate/Crisis) with >97% persistence, restating the index's own serial correlation rather than statistically distinct generating processes.
+
+On a fair-baseline comparison (identical labels and protocol), ASRI's discrimination (AUROC **0.866**) is **not statistically distinguishable** from its single strongest sub-index (Contagion, 0.851) or from PC1 of its sub-indices (0.858) -- with only four crisis episodes, those gaps are within overlapping bootstrap intervals. ASRI's measured advantage is confined to the Diebold-Yilmaz connectedness benchmark (0.670), which is itself constructed from ASRI's sub-indices and is outperformed by an off-the-shelf Fear & Greed index (0.789). **The value of aggregation here is interpretive -- channel decomposition, a single auditable composite, regime structure -- not discriminative.** ASRI proxies DeFi-TradFi transmission via TradFi-stress indicators (Treasury/VIX/yield), rather than measuring a realised exposure directly. An open-source implementation with live dashboard is provided.
 
 Paper links:
 - arXiv: https://arxiv.org/abs/2602.03874
@@ -21,16 +25,18 @@ Paper links:
 
 | Finding | Result |
 |---------|--------|
-| Crisis detection | Statistically significant abnormal stress for all 4 major crises (t-stats 5.47--32.64, p < 0.01) |
-| Early warning | Threshold-based detection identifies 3/4 crises at ~19-day first-crossing lead (fixed threshold); 4/4 out-of-sample at ~26-day mean lead (walk-forward) |
-| Regime persistence | HMM identifies 3 risk regimes (Low Risk, Moderate, Crisis) with >97% persistence (0.997 / 0.992 / 0.980) |
-| Benchmark comparison | Higher day-level discrimination than Diebold-Yilmaz (AUROC 0.866 vs. 0.670; AUPRC 0.298 vs. 0.121) |
-| Out-of-sample validation | No sustained false alarms on 2024--2025 holdout data |
-| DeFi-specific coverage | Captures composability risk, flash loan exposure, and RWA linkages |
+| Crisis detection (HAC-robust) | Significant abnormal stress for **3/4** crises (Celsius/3AC, FTX, SVB; t = 3.28--3.86, p < 0.01); Terra/Luna non-significant (t = 1.72, p = 0.086) |
+| Threshold detection | Fixed ASRI >= 50 identifies 3/4 at ~19-day first-crossing lead; Terra/Luna pre-window peak 46.0 < 50. Walk-forward (training-calibrated thresholds) recovers 4/4 out-of-sample, at a 47--59% false-alarm cost |
+| Regime structure | HMM labels 3 regimes (Low/Moderate/Crisis), persistence >97% (0.997 / 0.992 / 0.980) -- interpretive structure over an autocorrelated trend |
+| Fair-baseline discrimination | ASRI AUROC 0.866 **not distinguishable** from Contagion channel alone (0.851) or PC1 (0.858); aggregation adds ~+0.008 AUROC over the best single channel |
+| Benchmark caveat | The Diebold-Yilmaz benchmark (0.670) is built from ASRI's own sub-indices (circular) and is beaten by an off-the-shelf Fear & Greed index (0.789) -- outperforming it is not evidence of value |
+| Out-of-sample behaviour | No sustained false alarms on 2024--2025 holdout (single non-systemic Aug-2024 elevation, peak 58.8) |
+
+Full numbers: `results/baseline_comparison.json`, `results/event_study_hac.json`, `results/moving_block_bootstrap_roc.json`, `results/regenerated_tables_jun2026.json`.
 
 ## Keywords
 
-systemic risk, cryptocurrency, decentralized finance, stablecoin stability, contagion risk, DeFi-TradFi interconnection, risk monitoring
+systemic risk, cryptocurrency, decentralised finance, stablecoin stability, contagion risk, DeFi-TradFi interconnection, interpretable monitoring, channel decomposition
 
 ## Architecture
 
@@ -43,6 +49,8 @@ ASRI comprises four weighted sub-indices aggregated into a daily composite score
 | Contagion Risk | 25% | Cross-market correlation, exchange flow, cascade metrics |
 | Regulatory Opacity Risk | 20% | Classification uncertainty, enforcement patterns |
 
+> Note: in discrimination terms the Contagion channel carries most of the signal (single-channel AUROC 0.851); the "stablecoin dominance" of some weight specifications is about loading, not predictive power.
+
 ### Project Structure
 
 ```
@@ -53,7 +61,7 @@ asri/
 │   ├── signals/      # Sub-index calculations
 │   └── models/       # Database models
 ├── tests/            # Test suite
-├── scripts/          # Utility scripts
+├── scripts/          # Analysis + verification scripts (event study, bootstrap, baselines)
 ├── config/           # Configuration files
 └── docs/             # Documentation
 ```
@@ -106,6 +114,14 @@ cp .env.example .env
 uvicorn asri.api.main:app --reload
 ```
 
+## Reproducing the paper results
+
+```bash
+python scripts/event_study_hac.py            # HAC-robust event study (3/4)
+python scripts/moving_block_bootstrap_roc.py # ASRI vs Diebold-Yilmaz, block-bootstrap CIs
+python scripts/baseline_comparison.py        # fair single-feature / PC1 / off-the-shelf baselines
+```
+
 ## Citation
 
 ```bibtex
@@ -122,10 +138,10 @@ uvicorn asri.api.main:app --reload
 
 ## Authors
 
-- **Murad Farzulla** -- [Dissensus AI](https://dissensus.ai) & King's College London
+- **Murad Farzulla** -- [Dissensus](https://dissensus.ai) & King's College London
   - ORCID: [0009-0002-7164-8704](https://orcid.org/0009-0002-7164-8704)
   - Email: murad@dissensus.ai
-- **Andrew Maksakov** -- [Dissensus AI](https://dissensus.ai)
+- **Andrew Maksakov** -- [Dissensus](https://dissensus.ai)
 
 ## License
 

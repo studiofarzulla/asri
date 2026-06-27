@@ -1,0 +1,436 @@
+{
+  "method": "Newey-West HAC on event-window abnormal-signal series (OLS on constant)",
+  "profile": "paper_v2",
+  "estimation_window": [
+    -90,
+    -31
+  ],
+  "event_window": [
+    -30,
+    10
+  ],
+  "n_event_obs": 41,
+  "primary_hac_lag": 20,
+  "hac_lag_sweep": [
+    3,
+    10,
+    20,
+    30
+  ],
+  "ljung_box_lags": [
+    5,
+    10,
+    20
+  ],
+  "note": "CAS t-stat == mean-abnormal t-stat (CAS=n*mean, SE(CAS)=n*SE(mean)). HAC p-values use the normal (z) reference per statsmodels HAC default. Paper's claim 'Ljung-Box p>0.10 for all events' is refuted below: the abnormal/residual series are strongly serially correlated (AR1>0.9).",
+  "events": [
+    {
+      "name": "Terra/Luna",
+      "event_date": "2022-05-12",
+      "n_event_obs": 41,
+      "cas": 100.318,
+      "mean_abnormal": 2.4468,
+      "ar1_estimation_window": 0.8082,
+      "ar1_event_window": 0.7841,
+      "naive_paper": {
+        "t": 5.474,
+        "p": 2.590824304204986e-06,
+        "sig_1pct": true
+      },
+      "naive_iid_eventwindow": {
+        "t": 4.757,
+        "p": 2.5596921744816534e-05
+      },
+      "ljung_box": {
+        "estimation_window_resid": {
+          "5": {
+            "stat": 171.25259255496618,
+            "pvalue": 3.9430479751443483e-35
+          },
+          "10": {
+            "stat": 246.06541508728066,
+            "pvalue": 3.64484327668032e-47
+          },
+          "20": {
+            "stat": 267.18322747356507,
+            "pvalue": 3.838768630275451e-45
+          }
+        },
+        "event_window_abnormal": {
+          "5": {
+            "stat": 93.98401394633514,
+            "pvalue": 9.768279451832054e-19
+          },
+          "10": {
+            "stat": 110.52758976248091,
+            "pvalue": 4.1762443753663524e-19
+          },
+          "20": {
+            "stat": 115.25871436924957,
+            "pvalue": 2.138400734641395e-15
+          }
+        },
+        "combined_window_resid": {
+          "5": {
+            "stat": 284.29605543947366,
+            "pvalue": 2.376543295650831e-59
+          },
+          "10": {
+            "stat": 367.2758613678949,
+            "pvalue": 8.554792393240117e-73
+          },
+          "20": {
+            "stat": 381.57380640615384,
+            "pvalue": 1.3438282380369147e-68
+          }
+        }
+      },
+      "hac": {
+        "3": {
+          "se_mean": 0.9106308990264431,
+          "se_cas": 37.33586686008417,
+          "t": 2.686915873930956,
+          "p": 0.007211511306226204,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "10": {
+          "se_mean": 1.2940900415875938,
+          "se_cas": 53.057691705091344,
+          "t": 1.8907406279739543,
+          "p": 0.058658976183461074,
+          "sig_5pct": false,
+          "sig_1pct": false
+        },
+        "20": {
+          "se_mean": 1.4230151951895162,
+          "se_cas": 58.343623002770165,
+          "t": 1.7194395577485777,
+          "p": 0.0855343645005631,
+          "sig_5pct": false,
+          "sig_1pct": false
+        },
+        "30": {
+          "se_mean": 1.3475397371808369,
+          "se_cas": 55.24912922441431,
+          "t": 1.8157450577339183,
+          "p": 0.06940948882121738,
+          "sig_5pct": false,
+          "sig_1pct": false
+        }
+      },
+      "primary_hac_lag": 20,
+      "hac_primary_t": 1.719,
+      "hac_primary_p": 0.0855,
+      "survives_5pct_primary": false
+    },
+    {
+      "name": "Celsius/3AC",
+      "event_date": "2022-06-17",
+      "n_event_obs": 41,
+      "cas": 521.558,
+      "mean_abnormal": 12.7209,
+      "ar1_estimation_window": 0.7347,
+      "ar1_event_window": 0.8793,
+      "naive_paper": {
+        "t": 29.781,
+        "p": 0.0,
+        "sig_1pct": true
+      },
+      "naive_iid_eventwindow": {
+        "t": 10.238,
+        "p": 9.749732582396694e-13
+      },
+      "ljung_box": {
+        "estimation_window_resid": {
+          "5": {
+            "stat": 89.25328225105812,
+            "pvalue": 9.641957973220826e-18
+          },
+          "10": {
+            "stat": 94.75839638861052,
+            "pvalue": 6.067954239548601e-16
+          },
+          "20": {
+            "stat": 141.2701993798994,
+            "pvalue": 2.90528556496546e-20
+          }
+        },
+        "event_window_abnormal": {
+          "5": {
+            "stat": 117.64495880717806,
+            "pvalue": 9.895265597201257e-24
+          },
+          "10": {
+            "stat": 146.6327101667736,
+            "pvalue": 1.8353464406166334e-26
+          },
+          "20": {
+            "stat": 168.40496464785832,
+            "pvalue": 1.7697394977451142e-25
+          }
+        },
+        "combined_window_resid": {
+          "5": {
+            "stat": 372.31375633339604,
+            "pvalue": 2.7401363501102107e-78
+          },
+          "10": {
+            "stat": 574.0874981480163,
+            "pvalue": 6.253711489255325e-117
+          },
+          "20": {
+            "stat": 693.1235805510181,
+            "pvalue": 6.306424791399412e-134
+          }
+        }
+      },
+      "hac": {
+        "3": {
+          "se_mean": 2.273901036807285,
+          "se_cas": 93.22994250909869,
+          "t": 5.5943221597764285,
+          "p": 2.214853613750976e-08,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "10": {
+          "se_mean": 3.3112527483357055,
+          "se_cas": 135.76136268176393,
+          "t": 3.841728773420682,
+          "p": 0.00012217079348200786,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "20": {
+          "se_mean": 3.6468668462104943,
+          "se_cas": 149.52154069463026,
+          "t": 3.4881819095117432,
+          "p": 0.0004863170902820339,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "30": {
+          "se_mean": 3.387829269340785,
+          "se_cas": 138.90100004297219,
+          "t": 3.75489257220594,
+          "p": 0.0001734158422836265,
+          "sig_5pct": true,
+          "sig_1pct": true
+        }
+      },
+      "primary_hac_lag": 20,
+      "hac_primary_t": 3.488,
+      "hac_primary_p": 0.0005,
+      "survives_5pct_primary": true
+    },
+    {
+      "name": "FTX Collapse",
+      "event_date": "2022-11-11",
+      "n_event_obs": 41,
+      "cas": 758.782,
+      "mean_abnormal": 18.5069,
+      "ar1_estimation_window": 0.9108,
+      "ar1_event_window": 0.8708,
+      "naive_paper": {
+        "t": 32.64,
+        "p": 0.0,
+        "sig_1pct": true
+      },
+      "naive_iid_eventwindow": {
+        "t": 9.548,
+        "p": 7.20196026393759e-12
+      },
+      "ljung_box": {
+        "estimation_window_resid": {
+          "5": {
+            "stat": 209.38477634215306,
+            "pvalue": 2.7868745557254895e-43
+          },
+          "10": {
+            "stat": 299.4394483551329,
+            "pvalue": 2.0423717465254355e-58
+          },
+          "20": {
+            "stat": 317.91600782605894,
+            "pvalue": 1.747173329290198e-55
+          }
+        },
+        "event_window_abnormal": {
+          "5": {
+            "stat": 120.57825573322012,
+            "pvalue": 2.367263137858265e-24
+          },
+          "10": {
+            "stat": 145.94323235950998,
+            "pvalue": 2.543100992464489e-26
+          },
+          "20": {
+            "stat": 162.97172859780605,
+            "pvalue": 2.000893049048991e-24
+          }
+        },
+        "combined_window_resid": {
+          "5": {
+            "stat": 390.7898820987654,
+            "pvalue": 2.86496137202258e-82
+          },
+          "10": {
+            "stat": 597.9806660062046,
+            "pvalue": 4.768646353232292e-122
+          },
+          "20": {
+            "stat": 716.5929215599266,
+            "pvalue": 6.811775308855585e-139
+          }
+        }
+      },
+      "hac": {
+        "3": {
+          "se_mean": 3.55699628644882,
+          "se_cas": 145.8368477444016,
+          "t": 5.202948900791741,
+          "p": 1.9615081737277284e-07,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "10": {
+          "se_mean": 5.1692007443221035,
+          "se_cas": 211.93723051720625,
+          "t": 3.5802188450559407,
+          "p": 0.00034330655987351597,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "20": {
+          "se_mean": 5.641886514807012,
+          "se_cas": 231.31734710708747,
+          "t": 3.280262704704943,
+          "p": 0.0010371046733083226,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "30": {
+          "se_mean": 5.285674277669846,
+          "se_cas": 216.7126453844637,
+          "t": 3.5013262161999545,
+          "p": 0.0004629487908005767,
+          "sig_5pct": true,
+          "sig_1pct": true
+        }
+      },
+      "primary_hac_lag": 20,
+      "hac_primary_t": 3.28,
+      "hac_primary_p": 0.001,
+      "survives_5pct_primary": true
+    },
+    {
+      "name": "SVB Crisis",
+      "event_date": "2023-03-11",
+      "n_event_obs": 41,
+      "cas": 509.032,
+      "mean_abnormal": 12.4154,
+      "ar1_estimation_window": 0.8183,
+      "ar1_event_window": 0.895,
+      "naive_paper": {
+        "t": 26.915,
+        "p": 0.0,
+        "sig_1pct": true
+      },
+      "naive_iid_eventwindow": {
+        "t": 11.516,
+        "p": 2.826750740769504e-14
+      },
+      "ljung_box": {
+        "estimation_window_resid": {
+          "5": {
+            "stat": 137.5171930212696,
+            "pvalue": 6.029963226097183e-28
+          },
+          "10": {
+            "stat": 177.85617659076462,
+            "pvalue": 6.527082448393472e-33
+          },
+          "20": {
+            "stat": 215.20290256052763,
+            "pvalue": 1.0800034957678119e-34
+          }
+        },
+        "event_window_abnormal": {
+          "5": {
+            "stat": 126.45050102117555,
+            "pvalue": 1.347672535431625e-25
+          },
+          "10": {
+            "stat": 155.3809110389658,
+            "pvalue": 2.9064891338413094e-28
+          },
+          "20": {
+            "stat": 167.50365112354632,
+            "pvalue": 2.64803276130369e-25
+          }
+        },
+        "combined_window_resid": {
+          "5": {
+            "stat": 403.5726695782909,
+            "pvalue": 5.037720405321798e-85
+          },
+          "10": {
+            "stat": 640.739234397933,
+            "pvalue": 3.2589405344049336e-131
+          },
+          "20": {
+            "stat": 822.0877550716706,
+            "pvalue": 2.888906325169057e-161
+          }
+        }
+      },
+      "hac": {
+        "3": {
+          "se_mean": 2.00246226619165,
+          "se_cas": 82.10095291385765,
+          "t": 6.200070140486133,
+          "p": 5.643800283643957e-10,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "10": {
+          "se_mean": 2.913116453394068,
+          "se_cas": 119.43777458915679,
+          "t": 4.261898452291487,
+          "p": 2.0269755230111358e-05,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "20": {
+          "se_mean": 3.220064680592923,
+          "se_cas": 132.02265190430984,
+          "t": 3.855638856850213,
+          "p": 0.0001154277880945517,
+          "sig_5pct": true,
+          "sig_1pct": true
+        },
+        "30": {
+          "se_mean": 3.056544596698964,
+          "se_cas": 125.31832846465753,
+          "t": 4.061909162874166,
+          "p": 4.8673017493146844e-05,
+          "sig_5pct": true,
+          "sig_1pct": true
+        }
+      },
+      "primary_hac_lag": 20,
+      "hac_primary_t": 3.856,
+      "hac_primary_p": 0.0001,
+      "survives_5pct_primary": true
+    }
+  ],
+  "survivors_5pct_primary": [
+    "Celsius/3AC",
+    "FTX Collapse",
+    "SVB Crisis"
+  ],
+  "fail_5pct_primary": [
+    "Terra/Luna"
+  ]
+}

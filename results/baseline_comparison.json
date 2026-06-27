@@ -1,0 +1,209 @@
+{
+  "meta": {
+    "generated_utc": "2026-06-27T23:09:28.117272+00:00",
+    "purpose": "Referee-demanded fair-baseline comparison: do simple one-line baselines match ASRI's headline AUROC 0.866 on the same labels?",
+    "protocol": "IDENTICAL to compute_roc_metrics.load_real_data / real_dy_hmm_analysis: parquet=results/data/asri_history.parquet, window 2021-01-01..2024-12-31, rolling D-Y warmup=60 VAR(1) GFEVD H=10, common index = asri_win intersection roll, labels=30d forward pre-windows of {Terra,Celsius/3AC,FTX,SVB}, AUROC=trapezoidal (compute_roc_metrics.compute_auroc).",
+    "n_observations": 1402,
+    "n_crisis_imminent": 124,
+    "n_non_crisis": 1278,
+    "prevalence": 0.0884450784593438,
+    "n_independent_crisis_blocks": 4,
+    "sample_span": [
+      "2021-03-01",
+      "2024-12-31"
+    ],
+    "bootstrap": {
+      "method": "iid_day_percentile (matches paper's reported CI)",
+      "n_boot": 1000,
+      "seed": 42,
+      "caveat": "Only ~4 independent crisis episodes; i.i.d.-day bootstrap understates sampling uncertainty. The repo's moving_block_bootstrap_roc.json gives the honest (wider) CIs. AUROC gaps among baselines are very unlikely to be distinguishable at 4 events."
+    },
+    "caveats": [
+      "Only four crisis episodes -> wide sampling uncertainty; AUROC differences across baselines may not be statistically distinguishable.",
+      "All scores (ASRI, channels, PC1) are in-sample on the tuning events; this comparison is about discrimination, not out-of-sample skill.",
+      "Raw underlying features (e.g. raw stablecoin-TVL drawdown) are not in the released daily data; sub-indices are the finest single features."
+    ],
+    "fear_greed": {
+      "status": "computed (coverage 1401/1402)",
+      "source": "alternative.me Crypto Fear & Greed Index (live fetch)",
+      "note": "Off-the-shelf stress index not in repo; fetched live and aligned to the common index. Not fabricated. If a future run cannot reach the API, this baseline is simply absent."
+    }
+  },
+  "baselines": {
+    "asri": {
+      "label": "ASRI composite (4-channel)",
+      "family": "reference",
+      "auroc": 0.8657207582412034,
+      "auroc_ci": [
+        0.8416311645728634,
+        0.8878228102029668
+      ],
+      "auprc": 0.29772525678981343,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.352059925093633,
+      "recall_at_youden": 0.7580645161290323,
+      "f1_at_youden": 0.48081841432225064,
+      "note": "Headline; weights tuned on these events."
+    },
+    "dy": {
+      "label": "Diebold-Yilmaz connectedness",
+      "family": "reference",
+      "auroc": 0.6695946287041243,
+      "auroc_ci": [
+        0.6360860861814405,
+        0.7081200907729117
+      ],
+      "auprc": 0.12149608786469816,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.1485884101040119,
+      "recall_at_youden": 0.8064516129032258,
+      "f1_at_youden": 0.2509410288582183,
+      "note": "Built from ASRI's own sub-indices (referee circularity flag)."
+    },
+    "channel_stablecoin_risk": {
+      "label": "Stablecoin Concentration Risk channel",
+      "family": "single_channel",
+      "auroc": 0.8245999293250543,
+      "auroc_ci": [
+        0.793277671163759,
+        0.8540245535354083
+      ],
+      "auprc": 0.25540519670942113,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.27380952380952384,
+      "recall_at_youden": 0.7419354838709677,
+      "f1_at_youden": 0.39999999999999997,
+      "note": ""
+    },
+    "channel_defi_liquidity_risk": {
+      "label": "DeFi Liquidity Risk channel",
+      "family": "single_channel",
+      "auroc": 0.8210440961179263,
+      "auroc_ci": [
+        0.7866248559170083,
+        0.8515354700413535
+      ],
+      "auprc": 0.2598509594406742,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.2397094430992736,
+      "recall_at_youden": 0.7983870967741935,
+      "f1_at_youden": 0.3687150837988826,
+      "note": ""
+    },
+    "channel_contagion_risk": {
+      "label": "Contagion Risk channel",
+      "family": "single_channel",
+      "auroc": 0.8504814730677974,
+      "auroc_ci": [
+        0.8241760667350149,
+        0.8750840674765227
+      ],
+      "auprc": 0.2849399595179268,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.28488372093023256,
+      "recall_at_youden": 0.7903225806451613,
+      "f1_at_youden": 0.4188034188034188,
+      "note": ""
+    },
+    "channel_arbitrage_opacity": {
+      "label": "Regulatory/Arbitrage Opacity channel",
+      "family": "single_channel",
+      "auroc": 0.6498939875814025,
+      "auroc_ci": [
+        0.6112875639849666,
+        0.6870995649088267
+      ],
+      "auprc": 0.14080844865820802,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.13198573127229488,
+      "recall_at_youden": 0.8951612903225806,
+      "f1_at_youden": 0.23005181347150258,
+      "note": ""
+    },
+    "best_single_feature": {
+      "label": "BEST single available feature = Contagion Risk channel",
+      "family": "best_single_feature",
+      "auroc": 0.8504814730677974,
+      "auroc_ci": [
+        0.8241760667350149,
+        0.8750840674765227
+      ],
+      "auprc": 0.2849399595179268,
+      "which": "contagion_risk",
+      "note": "Raw underlying features (raw TVL drawdown etc.) are NOT in the released daily data; sub-indices are the finest single features available. 'Best single feature' = best of the four channels."
+    },
+    "pc1_standardized": {
+      "label": "PC1 of 4 sub-indices (standardized)",
+      "family": "pc1",
+      "auroc": 0.8557915593921955,
+      "auroc_ci": [
+        0.8272838854096028,
+        0.8810035770176615
+      ],
+      "auprc": 0.2855965143850593,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.3086816720257235,
+      "recall_at_youden": 0.7741935483870968,
+      "f1_at_youden": 0.44137931034482764,
+      "note": "explained_var_ratio=0.632",
+      "explained_var_ratio": 0.631564296538943,
+      "loadings": {
+        "stablecoin_risk": 0.5657856145610445,
+        "defi_liquidity_risk": 0.5731799239008858,
+        "contagion_risk": 0.4998098351617845,
+        "arbitrage_opacity": 0.31865583608072506
+      }
+    },
+    "pc1_unstandardized": {
+      "label": "PC1 of 4 sub-indices (covariance)",
+      "family": "pc1",
+      "auroc": 0.8576152254025948,
+      "auroc_ci": [
+        0.8315875686708954,
+        0.8812841804637539
+      ],
+      "auprc": 0.28879053495104223,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.28370786516853935,
+      "recall_at_youden": 0.8145161290322581,
+      "f1_at_youden": 0.4208333333333334,
+      "note": "explained_var_ratio=0.749",
+      "explained_var_ratio": 0.7488204283975606,
+      "loadings": {
+        "stablecoin_risk": 0.4966962031078461,
+        "defi_liquidity_risk": 0.3124132261797996,
+        "contagion_risk": 0.807697867703796,
+        "arbitrage_opacity": 0.05757614465140904
+      }
+    },
+    "fear_greed_offshelf": {
+      "label": "Crypto Fear&Greed (off-the-shelf, inverted)",
+      "family": "offshelf",
+      "auroc": 0.7885777929224089,
+      "auroc_ci": [
+        0.751727508906366,
+        0.8254609201838218
+      ],
+      "auprc": 0.2694153759955716,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.1834319526627219,
+      "recall_at_youden": 0.75,
+      "f1_at_youden": 0.29477020602218695,
+      "note": "alternative.me F&G; coverage 1401/1402 days on common index"
+    }
+  },
+  "verdict": {
+    "asri_auroc": 0.8657207582412034,
+    "dy_auroc": 0.6695946287041243,
+    "best_simple_baseline": "PC1 of 4 sub-indices (covariance)",
+    "best_simple_baseline_key": "pc1_unstandardized",
+    "best_simple_auroc": 0.8576152254025948,
+    "asri_minus_best_simple": 0.008105532838608598,
+    "any_simple_ties_or_beats_asri": false,
+    "best_simple_within_asri_bootstrap_ci": true,
+    "asri_auroc_bootstrap_ci": [
+      0.8416311645728634,
+      0.8878228102029668
+    ]
+  }
+}

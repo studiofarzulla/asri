@@ -1,0 +1,364 @@
+{
+  "threshold_sensitivity": {
+    "window_days": 30,
+    "rows": [
+      {
+        "threshold": 40,
+        "precision": 0.166,
+        "recall": 1.0,
+        "f1": 0.284,
+        "specificity": 0.992
+      },
+      {
+        "threshold": 50,
+        "precision": 0.303,
+        "recall": 0.75,
+        "f1": 0.432,
+        "specificity": 0.957
+      },
+      {
+        "threshold": 60,
+        "precision": 0.174,
+        "recall": 0.75,
+        "f1": 0.282,
+        "specificity": 0.938
+      },
+      {
+        "threshold": 65,
+        "precision": 0.286,
+        "recall": 0.75,
+        "f1": 0.414,
+        "specificity": 0.938
+      },
+      {
+        "threshold": 70,
+        "precision": 0.417,
+        "recall": 0.5,
+        "f1": 0.455,
+        "specificity": 0.937
+      },
+      {
+        "threshold": 75,
+        "precision": 0.375,
+        "recall": 0.25,
+        "f1": 0.3,
+        "specificity": 0.936
+      },
+      {
+        "threshold": 80,
+        "precision": 1.0,
+        "recall": 0.25,
+        "f1": 0.4,
+        "specificity": 0.935
+      }
+    ],
+    "optimal_threshold": 70
+  },
+  "precrisis_peaks_30d": {
+    "Terra/Luna": 46.0,
+    "Celsius/3AC": 71.4,
+    "FTX Collapse": 84.7,
+    "SVB Crisis": 66.2
+  },
+  "detection_matrix_recall": {
+    "40": "4/4",
+    "50": "3/4",
+    "60": "3/4",
+    "70": "2/4"
+  },
+  "holdout_theoretical": [
+    {
+      "crisis": "Terra/Luna",
+      "theo_peak_60d": 45.5,
+      "lead_days": 0,
+      "detected": false
+    },
+    {
+      "crisis": "Celsius/3AC",
+      "theo_peak_60d": 68.7,
+      "lead_days": 18,
+      "detected": true
+    },
+    {
+      "crisis": "FTX Collapse",
+      "theo_peak_60d": 81.1,
+      "lead_days": 13,
+      "detected": true
+    },
+    {
+      "crisis": "SVB Crisis",
+      "theo_peak_60d": 66.7,
+      "lead_days": 22,
+      "detected": true
+    }
+  ],
+  "walk_forward_fpr": {
+    "note": "OOS = asri from (event-90d) onward; positive=within 30d pre any crisis",
+    "per_event": [
+      {
+        "event": "Terra/Luna",
+        "threshold_90pct": 37.2,
+        "oos_days": 1435,
+        "alarm_rate": 0.722,
+        "fpr": 0.6966,
+        "precision": 0.1158,
+        "tp": 120,
+        "fp": 916,
+        "tn": 399,
+        "fn": 0
+      },
+      {
+        "event": "Celsius/3AC",
+        "threshold_90pct": 38.4,
+        "oos_days": 1399,
+        "alarm_rate": 0.5868,
+        "fpr": 0.5512,
+        "precision": 0.1413,
+        "tp": 116,
+        "fp": 705,
+        "tn": 574,
+        "fn": 4
+      },
+      {
+        "event": "FTX Collapse",
+        "threshold_90pct": 46.8,
+        "oos_days": 1252,
+        "alarm_rate": 0.1406,
+        "fpr": 0.104,
+        "precision": 0.2955,
+        "tp": 52,
+        "fp": 124,
+        "tn": 1068,
+        "fn": 8
+      },
+      {
+        "event": "SVB Crisis",
+        "threshold_90pct": 50.6,
+        "oos_days": 1132,
+        "alarm_rate": 0.0618,
+        "fpr": 0.0526,
+        "precision": 0.1714,
+        "tp": 12,
+        "fp": 58,
+        "tn": 1044,
+        "fn": 18
+      }
+    ],
+    "overall_mean": {
+      "alarm_rate": 0.3778,
+      "fpr": 0.3511,
+      "precision": 0.181
+    },
+    "full_series_review_framing": {
+      "note": "per-event 90pct threshold applied to FULL 2021-2026 index history (1841d); matches review 47-59%",
+      "per_event": [
+        {
+          "event": "Terra/Luna",
+          "threshold_90pct": 37.2,
+          "alarm_rate": 0.5866,
+          "fpr": 0.5578,
+          "precision": 0.1111,
+          "tp": 120,
+          "fp": 960,
+          "tn": 761,
+          "fn": 0
+        },
+        {
+          "event": "Celsius/3AC",
+          "threshold_90pct": 38.4,
+          "alarm_rate": 0.472,
+          "fpr": 0.4375,
+          "precision": 0.1335,
+          "tp": 116,
+          "fp": 753,
+          "tn": 968,
+          "fn": 4
+        },
+        {
+          "event": "FTX Collapse",
+          "threshold_90pct": 46.8,
+          "alarm_rate": 0.1276,
+          "fpr": 0.0895,
+          "precision": 0.3447,
+          "tp": 81,
+          "fp": 154,
+          "tn": 1567,
+          "fn": 39
+        },
+        {
+          "event": "SVB Crisis",
+          "threshold_90pct": 50.6,
+          "alarm_rate": 0.0766,
+          "fpr": 0.0604,
+          "precision": 0.2624,
+          "tp": 37,
+          "fp": 104,
+          "tn": 1617,
+          "fn": 83
+        }
+      ],
+      "overall_mean": {
+        "alarm_rate": 0.3157,
+        "fpr": 0.2863,
+        "precision": 0.2129
+      }
+    }
+  },
+  "weights_code_derived": {
+    "theoretical": {
+      "stablecoin_risk": 0.3,
+      "defi_liquidity_risk": 0.25,
+      "contagion_risk": 0.25,
+      "arbitrage_opacity": 0.2
+    },
+    "pca": {
+      "stablecoin_risk": 0.292,
+      "defi_liquidity_risk": 0.289,
+      "contagion_risk": 0.253,
+      "arbitrage_opacity": 0.167
+    },
+    "elastic_net": {
+      "stablecoin_risk": 0.343,
+      "defi_liquidity_risk": 0.205,
+      "contagion_risk": 0.452,
+      "arbitrage_opacity": 0.0
+    },
+    "critic": {
+      "stablecoin_risk": 0.214,
+      "defi_liquidity_risk": 0.163,
+      "contagion_risk": 0.316,
+      "arbitrage_opacity": 0.307
+    },
+    "entropy": {
+      "stablecoin_risk": 0.25,
+      "defi_liquidity_risk": 0.107,
+      "contagion_risk": 0.518,
+      "arbitrage_opacity": 0.125
+    },
+    "pc1_explained_var": 0.5915,
+    "corr_pca_theo": 0.876,
+    "corr_en_theo": 0.719,
+    "corr_critic_theo": -0.512,
+    "corr_entropy_theo": 0.271
+  },
+  "STALE_vs_CORRECT": {
+    "threshold_sensitivity_paper_stale": {
+      "60": {
+        "prec": 0.322,
+        "recall": 1.0,
+        "f1": 0.487
+      },
+      "65": {
+        "prec": 0.275,
+        "recall": 0.75,
+        "f1": 0.402
+      },
+      "70": {
+        "prec": 0.15,
+        "recall": 0.25,
+        "f1": 0.187
+      },
+      "75": {
+        "prec": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "80": {
+        "prec": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "optimal": 60
+    },
+    "threshold_sensitivity_corrected": {
+      "60": {
+        "prec": 0.174,
+        "recall": 0.75,
+        "f1": 0.282,
+        "spec": 0.938
+      },
+      "65": {
+        "prec": 0.286,
+        "recall": 0.75,
+        "f1": 0.414,
+        "spec": 0.938
+      },
+      "70": {
+        "prec": 0.417,
+        "recall": 0.5,
+        "f1": 0.455,
+        "spec": 0.937
+      },
+      "75": {
+        "prec": 0.375,
+        "recall": 0.25,
+        "f1": 0.3,
+        "spec": 0.936
+      },
+      "80": {
+        "prec": 1.0,
+        "recall": 0.25,
+        "f1": 0.4,
+        "spec": 0.935
+      },
+      "optimal": 70
+    },
+    "holdout_paper_table25_stale": {
+      "Terra": {
+        "deriv": 49.2,
+        "theo": 47.8,
+        "lead": "--/--"
+      },
+      "Celsius": {
+        "deriv": 68.4,
+        "theo": 65.1,
+        "lead": "16/8"
+      },
+      "FTX": {
+        "deriv": 71.2,
+        "theo": 73.0,
+        "lead": "15/4"
+      },
+      "SVB": {
+        "deriv": 72.8,
+        "theo": 74.6,
+        "lead": "12/10"
+      }
+    },
+    "holdout_correct_from_holdout_cv_tex": {
+      "Terra": {
+        "deriv": 49.2,
+        "theo": 47.8,
+        "lead": "0/0",
+        "detected": "No/No"
+      },
+      "Celsius": {
+        "deriv": 70.8,
+        "theo": 68.7,
+        "lead": "16/8",
+        "detected": "Yes/Yes"
+      },
+      "FTX": {
+        "deriv": 83.8,
+        "theo": 81.1,
+        "lead": "15/4",
+        "detected": "Yes/Yes"
+      },
+      "SVB": {
+        "deriv": 73.2,
+        "theo": 70.0,
+        "lead": "13/8",
+        "detected": "Yes/Yes"
+      }
+    }
+  },
+  "weights_reconciliation": {
+    "verdict": "Table 10 (tab:weight_comparison) is CODE-FAITHFUL; Table 9 (tab:weights / weights.tex) is STALE/hardcoded",
+    "table10_reproduces_compare_weight_methods": true,
+    "table9_values_are_hardcoded_in": "src/asri/api/main.py:485-486 (static metadata, not computed)",
+    "pca_crosscheck": "normalized |PC1| from pca_loadings.tex (0.572,0.566,0.496,0.327)->(0.29,0.29,0.25,0.17) MATCHES Table10 PCA, CONTRADICTS Table9 PCA (0.176,0.140,0.362,0.322)",
+    "en_discrepancy": "code EN concentrates on CR=0.452 (DLR=0.205); Table9/weights.tex claims DLR=0.842 (non-reproducible)",
+    "downstream": "trigger-amplifier/DLR-canary narrative rests on non-reproducible EN=0.842-on-DLR; code says CONTAGION dominates EN",
+    "recommendation": "keep Table 10; correct Table 9 PCA->0.29/0.29/0.25/0.17 & EN->0.34/0.21/0.45/0.00 (makes it redundant subset of Table10) OR remove Table 9; also sync API main.py:485-486"
+  }
+}
