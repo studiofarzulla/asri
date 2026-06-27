@@ -88,7 +88,7 @@ def handle_root():
         "legacy_base": "https://api.dissensus.ai",
         "docs": "/docs",
         "paper_doi": "10.5281/zenodo.17918239",
-        "methodology_profile": "paper_v2",
+        "methodology_profile": "paper_canon",
         "endpoints": {
             "current": "/asri/current",
             "timeseries": "/asri/timeseries",
@@ -107,7 +107,7 @@ def handle_health():
         "version": "2.1.0",
         "timestamp": datetime.utcnow().isoformat(),
         "runtime": "cloudflare-python-workers",
-        "methodology_profile": "paper_v2",
+        "methodology_profile": "paper_canon",
     })
 
 
@@ -164,7 +164,7 @@ async def handle_current(env):
                 "sub_indices": sub_indices,
                 "alert_level": alert_level,
                 "last_update": row["date"],
-                "methodology_profile": "paper_v2",
+                "methodology_profile": "paper_canon",
             })
     except Exception as e:
         return json_response({"error": f"Database error: {str(e)}"}, status=500)
@@ -213,7 +213,7 @@ async def handle_timeseries(env, start: str, end: str):
                 "frequency": "daily",
                 "start": start,
                 "end": end,
-                "methodology_profile": "paper_v2",
+                "methodology_profile": "paper_canon",
             },
         })
     except Exception as e:
@@ -224,7 +224,7 @@ def handle_methodology():
     """Get ASRI methodology documentation."""
     return json_response({
         "version": "2.1",
-        "methodology_profile": "paper_v2",
+        "methodology_profile": "paper_canon",
         "weights": {
             "stablecoin_risk": 0.30,
             "defi_liquidity_risk": 0.25,
@@ -381,7 +381,7 @@ def handle_docs():
             "/asri/validation": {"get": {"summary": "Validation results", "description": "Returns statistical validation tests"}},
             "/asri/subindex/{name}": {"get": {"summary": "Sub-index details", "description": "Returns individual sub-index information"}},
         },
-        "methodology_profile": "paper_v2",
+        "methodology_profile": "paper_canon",
     })
 
 
