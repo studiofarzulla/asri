@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated_utc": "2026-06-27T06:51:50.655846+00:00",
+    "generated_utc": "2026-06-28T22:31:50.294735+00:00",
     "method": "moving_block_bootstrap (overlapping blocks, Kunsch 1989)",
     "n_observations": 1402,
     "n_crisis_imminent": 124,

@@ -71,6 +71,17 @@ data/cache/
 *.parquet
 *.csv
 !config/*.csv
+# Frozen canonical ASRI series = the paper's dataset of record (max 84.70,
+# sha256 in DATA_PROVENANCE.md; Zenodo 10.5281/zenodo.17918239). Ship it in-repo
+# so the analysis scripts reproduce every headline on a fresh clone. All OTHER
+# *.parquet (regens, pegfix sensitivities, smoke outputs) stay ignored.
+!results/data/asri_history.parquet
+# Real peg-history input (drives the Bug-3 peg-fix sensitivity).
+!data/peg_history.csv
+# Frozen universe snapshots are local, large and regenerable -- keep the dumps
+# ignored but track the explanatory README.
+data/snapshots/*.json
+!data/snapshots/README.md
 
 # Secrets
 secrets/
@@ -98,3 +109,12 @@ CLAUDE.md
 *.out
 *.toc
 *.synctex.gz
+
+# Session reproducibility-audit scratch (Jun 2026) — not for the public repo
+_repro_backups_jun2026/
+results/peg_rerun/
+results/tvl_respec_jun2026/
+*.PRE_REPRO_BAK_*
+*.bak-*
+results/data/asri_generated.parquet
+results/data/asri_history_pegfix*.parquet

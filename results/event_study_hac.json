@@ -34,12 +34,12 @@
       "ar1_event_window": 0.7841,
       "naive_paper": {
         "t": 5.474,
-        "p": 2.590824304204986e-06,
+        "p": 2.5908243039829415e-06,
         "sig_1pct": true
       },
       "naive_iid_eventwindow": {
         "t": 4.757,
-        "p": 2.5596921744816534e-05
+        "p": 2.559692174481658e-05
       },
       "ljung_box": {
         "estimation_window_resid": {
@@ -139,7 +139,7 @@
       },
       "naive_iid_eventwindow": {
         "t": 10.238,
-        "p": 9.749732582396694e-13
+        "p": 9.749732582396682e-13
       },
       "ljung_box": {
         "estimation_window_resid": {
@@ -239,7 +239,7 @@
       },
       "naive_iid_eventwindow": {
         "t": 9.548,
-        "p": 7.20196026393759e-12
+        "p": 7.201960263937612e-12
       },
       "ljung_box": {
         "estimation_window_resid": {
@@ -339,7 +339,7 @@
       },
       "naive_iid_eventwindow": {
         "t": 11.516,
-        "p": 2.826750740769504e-14
+        "p": 2.8267507407695085e-14
       },
       "ljung_box": {
         "estimation_window_resid": {

@@ -5,8 +5,12 @@ Fetches historical data from DeFiLlama, FRED, and CoinGecko
 for a specific date to enable backtesting against historical crises.
 """
 
+import glob
+import json
+import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -16,6 +20,28 @@ import structlog
 from asri.config import settings as app_settings
 
 logger = structlog.get_logger()
+
+# ---------------------------------------------------------------------------
+# Canonical series provenance (read this before regenerating anything).
+#
+# The published, paper-of-record ASRI daily series (max 84.70 on 2022-11-08,
+# mean 39.20, 1841 rows, 2021-01-01..2026-01-15) is the FROZEN parquet at
+# results/data/asri_history.parquet (sha256 in DATA_PROVENANCE.md; Zenodo
+# 10.5281/zenodo.17918239). Every paper headline is recomputed from that file
+# by the scripts/ analysis layer -- the series is a released dataset, not a
+# re-derived artefact.
+#
+# This module is the *generation* pipeline. After the Jun-2026 honesty fixes
+# (D2 coin-ids, real peg loader, D5 rolling-365 TVL, and the frozen
+# protocols/bridges snapshot below) it produces a CODE-CONSISTENT series, but it
+# does NOT bit-reproduce the published parquet: the original generation-time
+# DeFiLlama/FRED point-in-time inputs were pulled live and never archived, and
+# the original protocols/bridges universe was never snapshotted. To make a regen
+# DETERMINISTIC, fetch_snapshot now reads the protocols/bridges universe from a
+# frozen on-disk snapshot (data/snapshots/<name>_<as_of>.json) when present,
+# falling back to a loudly-flagged LIVE pull only when no snapshot exists.
+# Do NOT overwrite the frozen canonical parquet from this pipeline.
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -57,23 +83,45 @@ class HistoricalDataFetcher:
     DEFILLAMA_COINS = "https://coins.llama.fi"
     FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 
-    # Major stablecoins to track historically
+    # DeFiLlama stablecoin id -> symbol.
+    #
+    # D2 fix (Jun 2026): corrected against the live DeFiLlama /stablecoins
+    # listing (28 Jun 2026). The prior map used WRONG ids: it labelled id=3
+    # "DAI" when id=3 is USTC/TerraClassicUSD -- the coin that actually
+    # collapsed in May 2022 (supply ~$13.7B, price to ~$0.006) -- and labelled
+    # id=11 "UST" when id=11 is USDP/Pax Dollar (~$1B, never depegged). With the
+    # peg loader wired in, that mispairing fed the genuinely-collapsing supply a
+    # ~par price and fed USDP's stable supply the UST depeg price, so the SCR
+    # peg term stayed inert right through the Terra crisis. id=3 is mapped to
+    # "UST" (not the literal DeFiLlama symbol "USTC") so it pairs with the Terra
+    # depeg series stored under symbol "UST" in data/peg_history.csv.
+    # ids 8/9/10/12 (LUSD/FEI/MIM/USDN) carry no peg-history rows, so the loader
+    # par-treats them; their supplies still count toward HHI/concentration.
     MAJOR_STABLES = {
         1: "USDT",
         2: "USDC",
-        3: "DAI",
+        3: "UST",   # id=3 = USTC/TerraClassicUSD (collapsed May 2022); paired
+                    #   with the "UST" depeg series in data/peg_history.csv
         4: "BUSD",
-        5: "FRAX",
-        6: "TUSD",
-        7: "USDP",
-        8: "GUSD",
-        9: "LUSD",
-        10: "sUSD",
-        11: "UST",  # Terra USD - important for Luna crisis
-        12: "MIM",
+        5: "DAI",
+        6: "FRAX",
+        7: "TUSD",
+        8: "LUSD",
+        9: "FEI",
+        10: "MIM",
+        11: "USDP",  # id=11 = USDP/Pax Dollar (never depegged) -- NOT Terra UST
+        12: "USDN",
     }
 
-    def __init__(self, timeout: float = 60.0):
+    # Default location for frozen universe snapshots (Bug 2 fix, Jun 2026).
+    SNAPSHOT_DIR = Path(__file__).resolve().parents[3] / "data" / "snapshots"
+
+    def __init__(
+        self,
+        timeout: float = 60.0,
+        snapshot_dir: str | Path | None = None,
+        as_of: str | None = None,
+    ):
         self.client = httpx.AsyncClient(timeout=timeout)
         self.settings = app_settings
         self._tvl_cache: list[dict] | None = None
@@ -81,9 +129,77 @@ class HistoricalDataFetcher:
         self._btc_cache: list[dict] | None = None
         self._fred_cache: dict[str, list[dict]] = {}  # series_id -> observations
         self._sp500_cache: list[dict] | None = None
+        # Protocol/bridge lists are *current* snapshots (documented look-ahead):
+        # the same current state is projected onto every historical date, so the
+        # value is identical for all dates. Cache once per fetcher instance to
+        # avoid re-pulling the large /protocols payload on every date of a long
+        # backfill (~thousands of redundant calls) and to make a full regen
+        # deterministic within a run.
+        self._protocols_cache: list[dict] | None = None
+        self._bridges_cache: list[dict] | None = None
+        self._protocols_quality: str = ""
+        self._bridges_quality: str = ""
+        # Bug 2 (look-ahead determinism) fix, Jun 2026: read the protocols/bridges
+        # universe from a frozen on-disk snapshot pinned to an as-of-date when
+        # available, instead of re-pulling the live (drifting) universe each run.
+        # ``as_of`` selects data/snapshots/<name>_<as_of>.json; when None, the
+        # newest snapshot on disk is used (or a loud LIVE fallback if none exist).
+        # Override ASRI_SNAPSHOT_AS_OF / ASRI_SNAPSHOT_DIR via env for batch runs.
+        self.snapshot_dir = Path(
+            snapshot_dir
+            or os.environ.get("ASRI_SNAPSHOT_DIR")
+            or self.SNAPSHOT_DIR
+        )
+        self.as_of = as_of or os.environ.get("ASRI_SNAPSHOT_AS_OF") or None
 
     async def close(self):
         await self.client.aclose()
+
+    def _frozen_snapshot_path(self, name: str) -> Path | None:
+        """Resolve the frozen universe-snapshot file for ``name`` (Bug 2 fix).
+
+        Returns data/snapshots/<name>_<as_of>.json when ``as_of`` is set, else
+        the newest data/snapshots/<name>_*.json on disk. Returns None when no
+        matching frozen snapshot exists (caller then falls back to a live pull).
+        """
+        if self.as_of:
+            cand = self.snapshot_dir / f"{name}_{self.as_of}.json"
+            return cand if cand.exists() else None
+        matches = sorted(glob.glob(str(self.snapshot_dir / f"{name}_*.json")))
+        return Path(matches[-1]) if matches else None
+
+    async def _load_frozen_or_live(
+        self, name: str, fetch_live
+    ) -> tuple[list[dict], str]:
+        """Load a universe list (protocols/bridges) from a frozen snapshot when
+        present (deterministic), else pull LIVE and flag the non-determinism.
+
+        ``fetch_live`` is an async callable returning the parsed live list.
+        Returns ``(data, data_quality_string)``.
+        """
+        path = self._frozen_snapshot_path(name)
+        if path is not None:
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                return data, f"frozen snapshot {path.name} ({len(data)} {name})"
+            except Exception as e:  # pragma: no cover - defensive
+                logger.warning(
+                    f"Failed to read frozen {name} snapshot; falling back to live",
+                    path=str(path), error=str(e),
+                )
+        # No frozen snapshot -> LIVE pull. This is the documented look-ahead AND
+        # is non-deterministic across runs: the current universe drifts, so a
+        # full regen will NOT match the published frozen series. Flag loudly.
+        data = await fetch_live()
+        today = datetime.now().strftime("%Y-%m-%d")
+        logger.warning(
+            f"No frozen {name} snapshot in {self.snapshot_dir}; pulled LIVE "
+            f"(non-deterministic current universe). Run "
+            f"scripts/dump_universe_snapshot.py to freeze for reproducible regens.",
+            as_of=today, count=len(data),
+        )
+        return data, f"LIVE non-deterministic (as-of {today}, {len(data)} {name})"
 
     async def _ensure_tvl_cache(self):
         """Load and cache full TVL history."""
@@ -168,10 +284,29 @@ class HistoricalDataFetcher:
         ]
         return values if values else [0.0]
 
-    def _get_max_tvl_before(self, date: datetime, data: list[dict]) -> float:
-        """Get max TVL up to a specific date."""
+    def _get_max_tvl_before(
+        self, date: datetime, data: list[dict], window_days: int = 365
+    ) -> float:
+        """Rolling maximum TVL over the trailing ``window_days`` window.
+
+        D5 fix (Jun 2026): the prior implementation used an *expanding* running
+        max over all history, which froze at the Nov-2021 all-chain TVL ATH
+        (~$177.5B) and saturated ``tvl_ratio`` at ~98-100 from Terra (May 2022)
+        through 2024 -- a ~12 ASRI-pt saturation artefact (the TVL term enters
+        ASRI as 0.30*0.40*tvl_risk). A trailing 365-day rolling max keeps the
+        denominator economically meaningful (a drawdown is measured against the
+        prior-year peak, not a once-touched ATH). At the four 2022-2023 crises
+        the Nov-2021 ATH is still inside the trailing year, so rolling ==
+        expanding there; the two specs only diverge in 2024+. A 30-day
+        rate-of-change spec exists as a sensitivity (results/tvl_respec_jun2026/)
+        but is NOT the default.
+        """
         target_ts = date.timestamp()
-        values = [point['tvl'] for point in data if point['date'] <= target_ts]
+        start_ts = (date - timedelta(days=window_days)).timestamp()
+        values = [
+            point['tvl'] for point in data
+            if start_ts <= point['date'] <= target_ts
+        ]
         return max(values) if values else 0.0
 
     async def _fetch_stablecoin_at_date(
@@ -378,23 +513,38 @@ class HistoricalDataFetcher:
         btc_prices = await self._fetch_btc_prices(target_date, days=90)
         data_quality['btc'] = f"ok ({len(btc_prices)} days)" if btc_prices else "missing"
 
-        # 5. Protocol/Bridge data (can't easily backtest, use current)
-        # We'll fetch current but note the limitation
-        try:
-            resp = await self.client.get(f"{self.DEFILLAMA_BASE}/protocols")
-            protocols = resp.json() if resp.status_code == 200 else []
-            data_quality['protocols'] = f"current snapshot ({len(protocols)} protocols)"
-        except Exception:
-            protocols = []
-            data_quality['protocols'] = "failed"
+        # 5. Protocol/Bridge data -- CURRENT-universe look-ahead (documented).
+        # Bug 2 fix (Jun 2026): prefer a frozen on-disk snapshot
+        # (data/snapshots/<name>_<as_of>.json) so a full historical regen is
+        # DETERMINISTIC and auditable; fall back to a LIVE pull (loudly flagged
+        # non-deterministic in data_quality) only when no frozen snapshot exists.
+        # Either way the same universe is projected onto every historical date,
+        # so it is cached once per fetcher instance (see __init__).
+        async def _live_protocols() -> list[dict]:
+            try:
+                resp = await self.client.get(f"{self.DEFILLAMA_BASE}/protocols")
+                return resp.json() if resp.status_code == 200 else []
+            except Exception:
+                return []
 
-        try:
-            resp = await self.client.get("https://bridges.llama.fi/bridges")
-            bridges = resp.json().get("bridges", []) if resp.status_code == 200 else []
-            data_quality['bridges'] = f"current snapshot ({len(bridges)} bridges)"
-        except Exception:
-            bridges = []
-            data_quality['bridges'] = "failed"
+        async def _live_bridges() -> list[dict]:
+            try:
+                resp = await self.client.get("https://bridges.llama.fi/bridges")
+                return resp.json().get("bridges", []) if resp.status_code == 200 else []
+            except Exception:
+                return []
+
+        if self._protocols_cache is None:
+            self._protocols_cache, self._protocols_quality = \
+                await self._load_frozen_or_live("protocols", _live_protocols)
+        protocols = self._protocols_cache
+        data_quality['protocols'] = self._protocols_quality or "failed"
+
+        if self._bridges_cache is None:
+            self._bridges_cache, self._bridges_quality = \
+                await self._load_frozen_or_live("bridges", _live_bridges)
+        bridges = self._bridges_cache
+        data_quality['bridges'] = self._bridges_quality or "failed"
 
         return HistoricalSnapshot(
             date=target_date,

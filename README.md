@@ -2,7 +2,7 @@
 
 **Interpretable, channel-decomposed monitoring of crypto-native systemic stress**
 
-[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17918239-blue.svg)](https://doi.org/10.5281/zenodo.17918239)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17918238-blue.svg)](https://doi.org/10.5281/zenodo.17918238)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![arXiv](https://img.shields.io/badge/arXiv-2602.03874-b31b1b.svg)](https://arxiv.org/abs/2602.03874)
 [![Status](https://img.shields.io/badge/Status-arXiv_Preprint-b31b1b.svg)](https://arxiv.org/abs/2602.03874)
@@ -116,11 +116,36 @@ uvicorn asri.api.main:app --reload
 
 ## Reproducing the paper results
 
+All reported numbers reproduce **deterministically** from the frozen canonical
+ASRI series `results/data/asri_history.parquet` (max **84.70** on 2022-11-08,
+mean **39.20**, 1841 rows; sha256 `f0fc1502…628a827d`; Zenodo
+`10.5281/zenodo.17918239`). This series is a **released, frozen dataset of
+record**, not a re-derived artefact: the generation pipeline's original live
+inputs and protocols/bridges universe were never archived, so the daily series is
+**not** bit-reproducible from the live ingestion pipeline. The analysis scripts
+read the frozen parquet directly.
+
+> Use Python **3.11–3.13** (3.14 segfaults pandas). See `REPRODUCIBILITY.md` for
+> the exact env, the script→number map (verified actuals), and provenance; see
+> `DATA_PROVENANCE.md` for the hash freeze and the documented generation-code bugs.
+
 ```bash
-python scripts/event_study_hac.py            # HAC-robust event study (3/4)
-python scripts/moving_block_bootstrap_roc.py # ASRI vs Diebold-Yilmaz, block-bootstrap CIs
-python scripts/baseline_comparison.py        # fair single-feature / PC1 / off-the-shelf baselines
+# verify the frozen series first
+sha256sum results/data/asri_history.parquet   # f0fc1502…628a827d
+
+python scripts/event_study_hac.py            # HAC event study: t 1.72/3.49/3.28/3.86, 3/4 survive
+python scripts/moving_block_bootstrap_roc.py # ASRI 0.866 vs Diebold-Yilmaz 0.670, block-bootstrap CIs
+python scripts/baseline_comparison.py        # AUROC ASRI 0.866 / Contagion 0.851 / PC1 0.858 / F&G 0.789
+python scripts/generate_detection_table.py   # peaks (FTX 84.7), τ=50 3/4, walk-forward OOS 4/4
+python scripts/extract_hmm_diagnostics.py    # 3 regimes, persistence 0.997/0.992/0.980
 ```
+
+The generation pipeline (`src/asri/backtest/`, `scripts/generate_asri_series.py`)
+is provided and corrected (D2 coin-ids, real peg, D5 rolling-365 TVL,
+frozen-universe-snapshot determinism). With a frozen snapshot
+(`scripts/dump_universe_snapshot.py`) it runs deterministically, but it produces a
+*code-consistent* series — it does not, and is hard-refused from, overwriting the
+frozen canonical parquet.
 
 ## Citation
 
@@ -132,7 +157,7 @@ python scripts/baseline_comparison.py        # fair single-feature / PC1 / off-t
   eprint    = {2602.03874},
   archivePrefix = {arXiv},
   primaryClass  = {q-fin.RM},
-  doi       = {10.5281/zenodo.17918239}
+  doi       = {10.5281/zenodo.17918238}
 }
 ```
 

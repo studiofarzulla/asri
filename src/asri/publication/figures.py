@@ -115,10 +115,10 @@ def plot_asri_time_series(
     fig, ax = plt.subplots(figsize=(10, 5))
 
     # Plot alert level bands
-    ax.axhspan(0, 30, alpha=0.15, color=ALERT_COLORS["low"], label="Low Risk")
-    ax.axhspan(30, 50, alpha=0.15, color=ALERT_COLORS["elevated"], label="Elevated")
-    ax.axhspan(50, 70, alpha=0.15, color=ALERT_COLORS["high"], label="High Risk")
-    ax.axhspan(70, 100, alpha=0.15, color=ALERT_COLORS["critical"], label="Critical")
+    ax.axhspan(0, 30, alpha=0.15, color=ALERT_COLORS["low"], label="Low")
+    ax.axhspan(30, 50, alpha=0.15, color=ALERT_COLORS["elevated"], label="Moderate")
+    ax.axhspan(50, 70, alpha=0.15, color=ALERT_COLORS["high"], label="Elevated")
+    ax.axhspan(70, 100, alpha=0.15, color=ALERT_COLORS["critical"], label="High")
 
     # Plot ASRI line
     ax.plot(
@@ -170,9 +170,9 @@ def plot_asri_time_series(
     handles = [
         plt.Line2D([0], [0], color=FARZULLA_BURGUNDY, linewidth=1.5, label="ASRI"),
         mpatches.Patch(color=ALERT_COLORS["low"], alpha=0.3, label="Low (<30)"),
-        mpatches.Patch(color=ALERT_COLORS["elevated"], alpha=0.3, label="Elevated (30-50)"),
-        mpatches.Patch(color=ALERT_COLORS["high"], alpha=0.3, label="High (50-70)"),
-        mpatches.Patch(color=ALERT_COLORS["critical"], alpha=0.3, label="Critical (>70)"),
+        mpatches.Patch(color=ALERT_COLORS["elevated"], alpha=0.3, label="Moderate (30-50)"),
+        mpatches.Patch(color=ALERT_COLORS["high"], alpha=0.3, label="Elevated (50-70)"),
+        mpatches.Patch(color=ALERT_COLORS["critical"], alpha=0.3, label="High (>=70)"),
     ]
     ax.legend(handles=handles, loc="upper left", framealpha=0.9, ncol=2)
 
@@ -452,6 +452,7 @@ def plot_event_study_panels(
     output_path: str = "figures/event_study.pdf",
     window: int = 30,
     title: str = "ASRI Event Study: Crisis Episodes",
+    threshold: float | None = 50.0,
 ) -> None:
     """
     4-panel figure showing ASRI trajectory around each crisis event.
@@ -471,6 +472,11 @@ def plot_event_study_panels(
         Number of days before/after event in window.
     title : str
         Figure title.
+    threshold : float | None
+        Operational "Elevated" alert level to draw as a horizontal reference
+        line (default 50.0). Makes the load-bearing threshold-detection claim
+        legible: Terra/Luna's event-window peak stays below this line while the
+        other three events break above it. Pass None to omit.
     """
     _setup_style()
     output_path = _ensure_output_dir(output_path)
@@ -506,6 +512,17 @@ def plot_event_study_panels(
         # Pre/post mean lines
         ax.axhline(pre_mean, color="#2E8B57", linestyle=":", linewidth=1.0, alpha=0.7, label=f"Pre: {pre_mean:.1f}")
         ax.axhline(post_mean, color="#DC143C", linestyle=":", linewidth=1.0, alpha=0.7, label=f"Post: {post_mean:.1f}")
+
+        # Operational alert threshold (Elevated) reference line
+        if threshold is not None:
+            ax.axhline(
+                threshold,
+                color="#4A4A4A",
+                linestyle="--",
+                linewidth=1.0,
+                alpha=0.8,
+                label=f"Threshold: {threshold:.0f}",
+            )
 
         # Shading for pre/post periods
         ax.axvspan(-window, 0, alpha=0.08, color="#2E8B57")

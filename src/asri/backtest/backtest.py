@@ -15,6 +15,7 @@ results reported in the paper are computed from that series, not from this
 live-recompute path.
 """
 
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -46,6 +47,48 @@ from asri.ingestion.defillama import StablecoinData
 from .historical import HistoricalDataFetcher, HistoricalSnapshot
 
 logger = structlog.get_logger()
+
+
+# ---------------------------------------------------------------------------
+# Real historical peg data (replaces the hardcoded price=1.0 / peg_deviation=0.0
+# / peg_volatility=10.0 defaults in _snapshot_to_inputs).
+#
+# Set ASRI_PEG_HARDCODE=1 to restore the legacy hardcoded behaviour (used to
+# reproduce the OLD pre-peg-fix series for OLD-vs-NEW comparison).
+# Set ASRI_PEG_INTRADAY=1 to use the stress-sensitive intraday daily-low prices
+# (price_low column) instead of the daily volume-weighted price.
+# ---------------------------------------------------------------------------
+_PEG_HARDCODE = os.environ.get("ASRI_PEG_HARDCODE", "0") == "1"
+_PEG_INTRADAY = os.environ.get("ASRI_PEG_INTRADAY", "0") == "1"
+_PEG_HARDCODE_VALUE = 10.0  # legacy default
+
+_PEG_HISTORY = None
+
+
+def _get_peg_history():
+    """Lazily load the peg-history loader once. Returns None if unavailable."""
+    global _PEG_HISTORY
+    if _PEG_HARDCODE:
+        return None
+    if _PEG_HISTORY is None:
+        try:
+            import sys
+            from pathlib import Path
+
+            scripts_dir = Path(__file__).resolve().parents[3] / "scripts"
+            if str(scripts_dir) not in sys.path:
+                sys.path.insert(0, str(scripts_dir))
+            from peg_loader import PegHistory  # type: ignore
+
+            _PEG_HISTORY = PegHistory()
+            logger.info("Loaded real peg history", path=str(_PEG_HISTORY.df.shape))
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(
+                "peg_loader unavailable; falling back to hardcoded peg_volatility",
+                error=str(e),
+            )
+            _PEG_HISTORY = False  # sentinel: tried and failed
+    return _PEG_HISTORY or None
 
 
 @dataclass
@@ -192,17 +235,26 @@ class ASRIBacktester:
         else:
             crypto_equity_corr = 0.3
 
-        # Convert stablecoin caps to StablecoinData objects
-        stablecoins = [
-            StablecoinData(
-                name=symbol,
-                symbol=symbol,
-                circulating=cap,
-                price=1.0,  # Assume at peg for historical
-                peg_deviation=0.0,
+        # Convert stablecoin caps to StablecoinData objects.
+        # Real historical per-coin prices come from the peg-history loader
+        # (data/peg_history.csv); coins absent from the dataset default to par.
+        peg = _get_peg_history()
+        stablecoins = []
+        for symbol, cap in snapshot.stablecoin_market_caps.items():
+            if peg is not None:
+                px = peg.price(symbol, snapshot.date, use_intraday_low=_PEG_INTRADAY)
+                price = px if px is not None else 1.0
+            else:
+                price = 1.0  # legacy hardcoded "assume at peg"
+            stablecoins.append(
+                StablecoinData(
+                    name=symbol,
+                    symbol=symbol,
+                    circulating=cap,
+                    price=price,
+                    peg_deviation=abs(1.0 - price),
+                )
             )
-            for symbol, cap in snapshot.stablecoin_market_caps.items()
-        ]
 
         # Stablecoin Risk Inputs
         tvl_ratio = snapshot.current_tvl / snapshot.max_historical_tvl if snapshot.max_historical_tvl > 0 else 0.5
@@ -213,11 +265,26 @@ class ASRIBacktester:
         hhi = calculate_hhi(circulating_values)
         concentration_risk = normalize_hhi_to_risk(hhi)
 
+        # Real supply-weighted peg volatility (0-100) from historical peg prices.
+        # Mirrors transform.transform_stablecoin_risk exactly:
+        #   weighted_dev = sum(|1-price_i| * circ_i) / sum(circ_i)
+        #   peg_volatility = normalize_to_100(weighted_dev * 100, 0, 5)
+        # Falls back to the legacy hardcoded 10.0 only if the loader is missing
+        # or ASRI_PEG_HARDCODE=1.
+        if peg is not None:
+            peg_volatility = peg.peg_volatility(
+                snapshot.date,
+                {s.symbol: s.circulating for s in stablecoins},
+                use_intraday_low=_PEG_INTRADAY,
+            )
+        else:
+            peg_volatility = _PEG_HARDCODE_VALUE
+
         stablecoin_inputs = StablecoinRiskInputs(
             tvl_ratio=tvl_risk,
             treasury_stress=treasury_stress,
             concentration_hhi=concentration_risk,
-            peg_volatility=10.0,  # Default - can't easily get historical peg data
+            peg_volatility=peg_volatility,
         )
 
         # DeFi Liquidity Risk Inputs

@@ -87,12 +87,42 @@ ARBITRAGE_WEIGHTS = {
     'transparency_score': 0.15,
 }
 
-# Major stablecoins to track
+# Major stablecoins to track.
+# D2 fix (Jun 2026): mirror of HistoricalDataFetcher.MAJOR_STABLES, corrected
+# against the live DeFiLlama /stablecoins listing. id=3 is USTC/TerraClassicUSD
+# (the coin that collapsed May 2022), NOT DAI; id=11 is USDP/Pax Dollar, NOT
+# Terra UST. id=3 is labelled "UST" so the peg loader pairs it with the Terra
+# depeg series in data/peg_history.csv. See historical.py for the full note.
 MAJOR_STABLES = {
-    1: "USDT", 2: "USDC", 3: "DAI", 4: "BUSD", 5: "FRAX",
-    6: "TUSD", 7: "USDP", 8: "GUSD", 9: "LUSD", 10: "sUSD",
-    11: "UST", 12: "MIM",
+    1: "USDT", 2: "USDC", 3: "UST", 4: "BUSD", 5: "DAI",
+    6: "FRAX", 7: "TUSD", 8: "LUSD", 9: "FEI", 10: "MIM",
+    11: "USDP", 12: "USDN",
 }
+
+
+# Optional real peg data (data/peg_history.csv via scripts/peg_loader.py).
+# peg fix (Jun 2026): replaces the hardcoded peg_volatility=10.0 with the
+# supply-weighted deviation from real historical depeg prices when available.
+# Guarded so the script still runs (httpx-only) if pandas/peg_loader is absent.
+_PEG_HISTORY: Any = None
+
+
+def _get_peg_history():
+    """Lazily load the peg-history loader once; None if unavailable."""
+    global _PEG_HISTORY
+    if _PEG_HISTORY is None:
+        try:
+            import sys
+            scripts_dir = Path(__file__).resolve().parent
+            if str(scripts_dir) not in sys.path:
+                sys.path.insert(0, str(scripts_dir))
+            from peg_loader import PegHistory  # type: ignore
+
+            _PEG_HISTORY = PegHistory()
+        except Exception as e:  # pragma: no cover - defensive
+            print(f"  peg_loader unavailable ({e}); using hardcoded peg_volatility=10.0")
+            _PEG_HISTORY = False  # sentinel: tried and failed
+    return _PEG_HISTORY or None
 
 
 # =============================================================================
@@ -370,12 +400,24 @@ class HistoricalDataFetcher:
         values = [p['tvl'] for p in self._tvl_cache if start_ts <= p['date'] <= end_ts]
         return values if values else [0.0]
 
-    def _get_max_tvl_before(self, date: datetime) -> float:
-        """Get max TVL up to a specific date."""
+    def _get_max_tvl_before(self, date: datetime, window_days: int = 365) -> float:
+        """Rolling maximum TVL over the trailing ``window_days`` window.
+
+        D5 fix (Jun 2026): mirror of HistoricalDataFetcher._get_max_tvl_before.
+        The prior expanding running-max froze at the Nov-2021 TVL ATH and
+        saturated tvl_ratio from May 2022 onward (~12 ASRI-pt artefact). A
+        trailing 365-day rolling max measures drawdowns against the prior-year
+        peak instead. Rolling == expanding at the 2022-2023 crises; diverges only
+        in 2024+.
+        """
         if not self._tvl_cache:
             return 0.0
         target_ts = date.timestamp()
-        values = [p['tvl'] for p in self._tvl_cache if p['date'] <= target_ts]
+        start_ts = (date - timedelta(days=window_days)).timestamp()
+        values = [
+            p['tvl'] for p in self._tvl_cache
+            if start_ts <= p['date'] <= target_ts
+        ]
         return max(values) if values else 0.0
 
     async def _fetch_stablecoin_at_date(self, stablecoin_id: int, target_date: datetime) -> float:
@@ -558,11 +600,24 @@ def calculate_asri_from_snapshot(snapshot: HistoricalSnapshot) -> dict[str, Any]
     hhi = calculate_hhi(circulating_values)
     concentration_risk = normalize_hhi_to_risk(hhi)
 
+    # Real supply-weighted peg volatility from historical depeg prices, keyed by
+    # symbol (so the D2-corrected MAJOR_STABLES labels pair the right price with
+    # the right supply). Falls back to the legacy 10.0 if the loader is missing.
+    peg = _get_peg_history()
+    if peg is not None:
+        peg_volatility = peg.peg_volatility(
+            snapshot.date,
+            snapshot.stablecoin_market_caps,
+            use_intraday_low=False,
+        )
+    else:
+        peg_volatility = 10.0  # legacy default fallback
+
     stablecoin_inputs = {
         'tvl_ratio': tvl_risk,
         'treasury_stress': treasury_stress,
         'concentration_hhi': concentration_risk,
-        'peg_volatility': 10.0,  # Default
+        'peg_volatility': peg_volatility,
     }
 
     # DeFi Liquidity Risk Inputs
