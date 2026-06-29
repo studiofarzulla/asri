@@ -35,16 +35,16 @@ export function KPIStrip({ metrics, rangeLabel }: KPIStripProps) {
   ];
 
   return (
-    <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-4 sm:p-5 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+    <section className="asri-glass p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold tracking-wide text-zinc-100">Range KPIs</h2>
-        <span className="text-[11px] text-zinc-400 uppercase tracking-[0.2em]">{rangeLabel}</span>
+        <h2 className="text-sm font-semibold tracking-tight text-zinc-100 font-mono">Range KPIs</h2>
+        <span className="text-[11px] text-zinc-400 uppercase tracking-[0.2em] font-mono">{rangeLabel}</span>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {cards.map((card) => (
           <div
             key={card.title}
-            className="rounded-xl border border-zinc-700/40 bg-gradient-to-b from-zinc-800/55 to-zinc-900/55 px-3 py-3 space-y-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-zinc-500/60 transition-colors"
+            className="asri-glass-interactive rounded-xl border border-zinc-700/40 bg-gradient-to-b from-zinc-800/55 to-zinc-900/55 px-3 py-3 space-y-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-zinc-400">{card.title}</span>

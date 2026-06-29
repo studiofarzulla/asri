@@ -1,0 +1,451 @@
+{
+  "meta": {
+    "generated_utc": "2026-06-29T14:49:54.824910+00:00",
+    "method": "paired moving-block bootstrap (overlapping blocks, Kunsch 1989); SAME resampled block indices applied to ASRI and each baseline on every replicate (paired difference of AUROC/AUPRC).",
+    "purpose": "Back the demotion claim with the proper test: is ASRI's AUROC difference vs PC1 / vs best single channel (Contagion) distinguishable from 0 under autocorrelation-robust inference?",
+    "protocol": "IDENTICAL sample/labels to baseline_comparison.py (parquet=results/data/asri_history.parquet, window 2021-01-01..2024-12-31, common=asri_win INTERSECT rolling-D-Y, labels=30d forward pre-windows of {Terra,Celsius/3AC,FTX,SVB}). PC1=covariance form (paper baseline); Contagion=contagion_risk.",
+    "n_observations": 1402,
+    "n_crisis_imminent": 124,
+    "n_independent_crisis_blocks": 4,
+    "n_bootstrap": 2000,
+    "seed": 42,
+    "block_lengths_days": [
+      20,
+      25,
+      30
+    ],
+    "main_block_length_days": 25,
+    "point_estimates": {
+      "ASRI": {
+        "auroc": 0.8657207582412034,
+        "auprc_trapz": 0.29772525678981343
+      },
+      "PC1_cov": {
+        "auroc": 0.8576152254025947,
+        "auprc_trapz": 0.28879053495104223,
+        "explained_var_ratio": 0.7488204283975606,
+        "loadings": {
+          "stablecoin_risk": 0.4966962031078461,
+          "defi_liquidity_risk": 0.3124132261797996,
+          "contagion_risk": 0.807697867703796,
+          "arbitrage_opacity": 0.05757614465140904
+        },
+        "orientation_sign": 1
+      },
+      "Contagion": {
+        "auroc": 0.8504814730677974,
+        "auprc_trapz": 0.2849399595179268,
+        "orientation_sign": 1
+      },
+      "PC1_std": {
+        "auroc": 0.8557915593921954,
+        "auprc_trapz": 0.2855965143850593,
+        "explained_var_ratio": 0.631564296538943,
+        "orientation_sign": 1
+      }
+    }
+  },
+  "by_block_length": {
+    "20": {
+      "marginal": {
+        "ASRI": {
+          "auroc": {
+            "point": 0.8657207582412034,
+            "ci_lower": 0.7709386736587528,
+            "ci_upper": 0.9459329401296583,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.29772525678981343,
+            "ci_lower": 0.13716055571965166,
+            "ci_upper": 0.5120683318454555,
+            "n_valid": 2000
+          }
+        },
+        "PC1_cov": {
+          "auroc": {
+            "point": 0.8576152254025947,
+            "ci_lower": 0.7556465316946974,
+            "ci_upper": 0.940321439619741,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.28879053495104223,
+            "ci_lower": 0.13332399182103066,
+            "ci_upper": 0.4968961095019675,
+            "n_valid": 2000
+          }
+        },
+        "Contagion": {
+          "auroc": {
+            "point": 0.8504814730677974,
+            "ci_lower": 0.7496861685161469,
+            "ci_upper": 0.9314844562418011,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.2849399595179268,
+            "ci_lower": 0.12895997190494551,
+            "ci_upper": 0.4817950997212402,
+            "n_valid": 2000
+          }
+        },
+        "PC1_std": {
+          "auroc": {
+            "point": 0.8557915593921954,
+            "ci_lower": 0.7547216328541617,
+            "ci_upper": 0.9413898734751275,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.2855965143850593,
+            "ci_lower": 0.1279004554210041,
+            "ci_upper": 0.4929153814045763,
+            "n_valid": 2000
+          }
+        }
+      },
+      "difference": {
+        "ASRI_minus_PC1_cov": {
+          "auroc": {
+            "diff_mean": 0.00847023647676816,
+            "diff_ci_lower": 0.0009075085465237026,
+            "diff_ci_upper": 0.018509599198262866,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.009,
+            "p_two_sided": 0.018,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.010028848700332455,
+            "diff_ci_lower": -0.001085754323518767,
+            "diff_ci_upper": 0.02621171034299615,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.0385,
+            "p_two_sided": 0.077,
+            "n_valid": 2000
+          }
+        },
+        "ASRI_minus_Contagion": {
+          "auroc": {
+            "diff_mean": 0.0158786154645527,
+            "diff_ci_lower": 0.004016774745327767,
+            "diff_ci_upper": 0.031568963336178354,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.0015,
+            "p_two_sided": 0.003,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.016276405463306234,
+            "diff_ci_lower": -0.0030327102312497807,
+            "diff_ci_upper": 0.04748236309952955,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.062,
+            "p_two_sided": 0.124,
+            "n_valid": 2000
+          }
+        },
+        "ASRI_minus_PC1_std": {
+          "auroc": {
+            "diff_mean": 0.010071838085382851,
+            "diff_ci_lower": 0.0004608026936596205,
+            "diff_ci_upper": 0.025051098882067968,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.015,
+            "p_two_sided": 0.03,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.013523752271683292,
+            "diff_ci_lower": -9.352143006452326e-05,
+            "diff_ci_upper": 0.02962716781297027,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.0265,
+            "p_two_sided": 0.053,
+            "n_valid": 2000
+          }
+        }
+      }
+    },
+    "25": {
+      "marginal": {
+        "ASRI": {
+          "auroc": {
+            "point": 0.8657207582412034,
+            "ci_lower": 0.7564052283255779,
+            "ci_upper": 0.9486773354597536,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.29772525678981343,
+            "ci_lower": 0.1313697263376018,
+            "ci_upper": 0.5179071794280913,
+            "n_valid": 2000
+          }
+        },
+        "PC1_cov": {
+          "auroc": {
+            "point": 0.8576152254025947,
+            "ci_lower": 0.7439424883175985,
+            "ci_upper": 0.9434378409778565,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.28879053495104223,
+            "ci_lower": 0.12405706192822073,
+            "ci_upper": 0.5006593155583222,
+            "n_valid": 2000
+          }
+        },
+        "Contagion": {
+          "auroc": {
+            "point": 0.8504814730677974,
+            "ci_lower": 0.7359742881937816,
+            "ci_upper": 0.9350738760740815,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.2849399595179268,
+            "ci_lower": 0.12305421116769931,
+            "ci_upper": 0.48485407525227775,
+            "n_valid": 2000
+          }
+        },
+        "PC1_std": {
+          "auroc": {
+            "point": 0.8557915593921954,
+            "ci_lower": 0.7373107657582602,
+            "ci_upper": 0.9453267428266431,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.2855965143850593,
+            "ci_lower": 0.12318077651458173,
+            "ci_upper": 0.4994135453262109,
+            "n_valid": 2000
+          }
+        }
+      },
+      "difference": {
+        "ASRI_minus_PC1_cov": {
+          "auroc": {
+            "diff_mean": 0.008499882755780843,
+            "diff_ci_lower": 0.0008518420788376142,
+            "diff_ci_upper": 0.01836082625285283,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.012,
+            "p_two_sided": 0.024,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.010525853405882636,
+            "diff_ci_lower": -0.0012322557441261338,
+            "diff_ci_upper": 0.027336866392534923,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.042,
+            "p_two_sided": 0.084,
+            "n_valid": 2000
+          }
+        },
+        "ASRI_minus_Contagion": {
+          "auroc": {
+            "diff_mean": 0.015915034885558354,
+            "diff_ci_lower": 0.003797089586226218,
+            "diff_ci_upper": 0.031048365279056397,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.0015,
+            "p_two_sided": 0.003,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.017094034341733184,
+            "diff_ci_lower": -0.003380816986775456,
+            "diff_ci_upper": 0.04982440210341699,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.0615,
+            "p_two_sided": 0.123,
+            "n_valid": 2000
+          }
+        },
+        "ASRI_minus_PC1_std": {
+          "auroc": {
+            "diff_mean": 0.010085334427894097,
+            "diff_ci_lower": 0.0004705036564176146,
+            "diff_ci_upper": 0.02696047332304984,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.014,
+            "p_two_sided": 0.028,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.013993899028086976,
+            "diff_ci_lower": -0.0004397022986690795,
+            "diff_ci_upper": 0.032000452940837025,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.0295,
+            "p_two_sided": 0.059,
+            "n_valid": 2000
+          }
+        }
+      }
+    },
+    "30": {
+      "marginal": {
+        "ASRI": {
+          "auroc": {
+            "point": 0.8657207582412034,
+            "ci_lower": 0.7537963099454074,
+            "ci_upper": 0.9498702226618915,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.29772525678981343,
+            "ci_lower": 0.12887804779791218,
+            "ci_upper": 0.5232608453158898,
+            "n_valid": 2000
+          }
+        },
+        "PC1_cov": {
+          "auroc": {
+            "point": 0.8576152254025947,
+            "ci_lower": 0.7426305169771925,
+            "ci_upper": 0.9434496671779381,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.28879053495104223,
+            "ci_lower": 0.12528323769614638,
+            "ci_upper": 0.5101884111680908,
+            "n_valid": 2000
+          }
+        },
+        "Contagion": {
+          "auroc": {
+            "point": 0.8504814730677974,
+            "ci_lower": 0.7348784521412788,
+            "ci_upper": 0.9364497504773345,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.2849399595179268,
+            "ci_lower": 0.11934200379791114,
+            "ci_upper": 0.49195930912531827,
+            "n_valid": 2000
+          }
+        },
+        "PC1_std": {
+          "auroc": {
+            "point": 0.8557915593921954,
+            "ci_lower": 0.7393202513333775,
+            "ci_upper": 0.9453023875804908,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "point": 0.2855965143850593,
+            "ci_lower": 0.1218111803795361,
+            "ci_upper": 0.507574256299411,
+            "n_valid": 2000
+          }
+        }
+      },
+      "difference": {
+        "ASRI_minus_PC1_cov": {
+          "auroc": {
+            "diff_mean": 0.008479558696695765,
+            "diff_ci_lower": 0.001109251717437096,
+            "diff_ci_upper": 0.018358857081551844,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.0095,
+            "p_two_sided": 0.019,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.010545139552771317,
+            "diff_ci_lower": -0.001451844626505997,
+            "diff_ci_upper": 0.02844451636684747,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.0365,
+            "p_two_sided": 0.073,
+            "n_valid": 2000
+          }
+        },
+        "ASRI_minus_Contagion": {
+          "auroc": {
+            "diff_mean": 0.015958910906660517,
+            "diff_ci_lower": 0.004535347792241226,
+            "diff_ci_upper": 0.030692846009900725,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.0015,
+            "p_two_sided": 0.003,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.01711781775215139,
+            "diff_ci_lower": -0.003942821077191655,
+            "diff_ci_upper": 0.04995890052432895,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.0585,
+            "p_two_sided": 0.117,
+            "n_valid": 2000
+          }
+        },
+        "ASRI_minus_PC1_std": {
+          "auroc": {
+            "diff_mean": 0.010058101101288706,
+            "diff_ci_lower": 0.0004857131726798886,
+            "diff_ci_upper": 0.026348340999244147,
+            "ci_excludes_zero": true,
+            "frac_le0": 0.0145,
+            "p_two_sided": 0.029,
+            "n_valid": 2000
+          },
+          "auprc_trapz": {
+            "diff_mean": 0.01411445148091431,
+            "diff_ci_lower": -0.00045187303657357315,
+            "diff_ci_upper": 0.031381531227276487,
+            "ci_excludes_zero": false,
+            "frac_le0": 0.028,
+            "p_two_sided": 0.056,
+            "n_valid": 2000
+          }
+        }
+      }
+    }
+  },
+  "headline": {
+    "block_length_days": 25,
+    "ASRI_minus_PC1_cov": {
+      "auroc_diff_mean": 0.008499882755780843,
+      "auroc_diff_ci": [
+        0.0008518420788376142,
+        0.01836082625285283
+      ],
+      "ci_excludes_zero": true,
+      "p_two_sided": 0.024
+    },
+    "ASRI_minus_Contagion": {
+      "auroc_diff_mean": 0.015915034885558354,
+      "auroc_diff_ci": [
+        0.003797089586226218,
+        0.031048365279056397
+      ],
+      "ci_excludes_zero": true,
+      "p_two_sided": 0.003
+    },
+    "ASRI_minus_PC1_std": {
+      "auroc_diff_mean": 0.010085334427894097,
+      "auroc_diff_ci": [
+        0.0004705036564176146,
+        0.02696047332304984
+      ],
+      "ci_excludes_zero": true,
+      "p_two_sided": 0.028
+    },
+    "any_blocklen_excludes_zero_auroc": {
+      "ASRI_minus_PC1_cov": true,
+      "ASRI_minus_Contagion": true,
+      "ASRI_minus_PC1_std": true
+    }
+  }
+}

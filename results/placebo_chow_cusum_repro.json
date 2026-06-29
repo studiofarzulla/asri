@@ -1,0 +1,212 @@
+{
+  "series": {
+    "n_rows": 1841,
+    "start": "2021-01-01",
+    "end": "2026-01-15"
+  },
+  "crisis_benchmark_hac": [
+    {
+      "name": "Terra/Luna",
+      "date": "2022-05-12",
+      "cas": 255.064,
+      "t_naive": 45.802,
+      "t_hac_L20": 1.971,
+      "fixb_sig_5pct": false,
+      "fixb_sig_bonf": false
+    },
+    {
+      "name": "Celsius/3AC",
+      "date": "2022-06-17",
+      "cas": 535.518,
+      "t_naive": 17.186,
+      "t_hac_L20": 17.1,
+      "fixb_sig_5pct": true,
+      "fixb_sig_bonf": true
+    },
+    {
+      "name": "FTX Collapse",
+      "date": "2022-11-11",
+      "cas": 86.979,
+      "t_naive": 8.436,
+      "t_hac_L20": 8.775,
+      "fixb_sig_5pct": true,
+      "fixb_sig_bonf": true
+    },
+    {
+      "name": "SVB Crisis",
+      "date": "2023-03-11",
+      "cas": 47.458,
+      "t_naive": 11.197,
+      "t_hac_L20": 4.654,
+      "fixb_sig_5pct": true,
+      "fixb_sig_bonf": false
+    }
+  ],
+  "crisis_hac_summary": {
+    "all4_mean_abs_t": 8.125,
+    "all4_max_abs_t": 17.1,
+    "fixb_sig_count": 3,
+    "fixb_sig_mean_abs_t": 10.176,
+    "fixb_crit_5pct": 3.52,
+    "fixb_crit_bonferroni": 5.73
+  },
+  "placebo_paper_style_10": {
+    "label": "paper_style_10_seed42",
+    "n_dates": 10,
+    "hac": {
+      "mean_abs_t": 7.555363887671453,
+      "max_abs_t": 16.285476983598024,
+      "median_abs_t": 5.110609192666968,
+      "q95_abs_t": 15.577060995978783,
+      "n_sig_fixb_5": 5,
+      "frac_sig_fixb_5": 0.5,
+      "n_sig_naive_5": 8,
+      "frac_sig_naive_5": 0.8
+    },
+    "naive": {
+      "mean_abs_t": 13.598747308552955,
+      "max_abs_t": 32.10401203116819
+    }
+  },
+  "placebo_all_eligible": {
+    "label": "all_eligible_null",
+    "n_dates": 889,
+    "hac": {
+      "mean_abs_t": 5.383032542405789,
+      "max_abs_t": 30.7258303861738,
+      "median_abs_t": 3.5204851415286633,
+      "q95_abs_t": 16.363051464674182,
+      "n_sig_fixb_5": 445,
+      "frac_sig_fixb_5": 0.500562429696288,
+      "n_sig_naive_5": 637,
+      "frac_sig_naive_5": 0.7165354330708661
+    },
+    "naive": {
+      "mean_abs_t": 9.912891824023681,
+      "max_abs_t": 40.040736151646435
+    }
+  },
+  "placebo_empirical_pvalues_twosided": {
+    "Terra/Luna": 0.7142857142857143,
+    "Celsius/3AC": 0.04499437570303712,
+    "FTX Collapse": 0.19460067491563554,
+    "SVB Crisis": 0.40832395950506184
+  },
+  "placebo_empirical_pvalues_onesided": {
+    "Terra/Luna": 0.24296962879640044,
+    "Celsius/3AC": 0.0,
+    "FTX Collapse": 0.04161979752530934,
+    "SVB Crisis": 0.11473565804274466
+  },
+  "placebo_null_signed_summary": {
+    "mean": -2.338,
+    "median": -1.775,
+    "min": -30.726,
+    "max": 16.285,
+    "frac_signed_gt_3p52": 0.155,
+    "frac_signed_gt_1p645": 0.278
+  },
+  "like_for_like_hac_ratio": 1.89,
+  "structural_break": {
+    "chow_full": {
+      "stat": 2.7183,
+      "crit": 3.0006,
+      "p": 0.0662,
+      "stable": true,
+      "n": 1841
+    },
+    "chow_2021_2024": {
+      "stat": 1.1901,
+      "crit": 3.0019,
+      "p": 0.3045,
+      "stable": true,
+      "n": 1461
+    },
+    "cusum_full": {
+      "stat": 16.0738,
+      "crit": 1.36,
+      "n_breaks": 49,
+      "stable": false,
+      "break_dates": [
+        "2021-02-19",
+        "2021-03-22",
+        "2021-04-22",
+        "2021-05-23",
+        "2021-06-23",
+        "2021-07-24",
+        "2021-08-24",
+        "2021-09-24",
+        "2021-10-25",
+        "2021-11-25",
+        "2021-12-26",
+        "2022-01-26",
+        "2022-02-26",
+        "2022-03-29",
+        "2022-04-29",
+        "2022-05-30",
+        "2022-06-30",
+        "2022-07-31",
+        "2022-08-31",
+        "2022-10-01",
+        "2022-11-01",
+        "2022-12-02",
+        "2023-01-02",
+        "2023-02-02",
+        "2023-03-05",
+        "2023-04-05",
+        "2023-05-06",
+        "2023-06-06",
+        "2023-07-07",
+        "2023-08-07",
+        "2023-09-07",
+        "2023-10-08",
+        "2023-11-08",
+        "2023-12-09",
+        "2024-01-09",
+        "2024-02-09",
+        "2024-03-11",
+        "2024-04-11",
+        "2024-05-12",
+        "2024-06-12",
+        "2024-07-13",
+        "2024-08-13",
+        "2024-09-13",
+        "2024-10-14",
+        "2024-11-14",
+        "2024-12-15",
+        "2025-01-15",
+        "2025-02-15",
+        "2025-03-18"
+      ]
+    },
+    "cusum_2021_2024": {
+      "stat": 15.7701,
+      "crit": 1.36,
+      "n_breaks": 36,
+      "stable": false
+    }
+  },
+  "placebo_dates_10": [
+    "2021-06-16",
+    "2021-06-18",
+    "2021-06-23",
+    "2021-09-26",
+    "2023-08-13",
+    "2023-08-18",
+    "2024-02-24",
+    "2024-04-05",
+    "2024-06-07",
+    "2024-08-24"
+  ],
+  "config": {
+    "est_window": [
+      -90,
+      -31
+    ],
+    "event_window": [
+      -30,
+      10
+    ],
+    "hac_lag": 20
+  }
+}

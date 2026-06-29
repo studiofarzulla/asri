@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "generated_utc": "2026-06-29T14:57:09.005686+00:00",
+    "purpose": "Referee extension: add the two most obvious no-crypto-construction baselines (plain BTC/ETH 30d return; standalone VIX+10Y macro composite) plus a non-stationarity check on Contagion Risk, all on the IDENTICAL labels/window/sample/bootstrap as baseline_comparison.json.",
+    "protocol": "IDENTICAL to baseline_comparison.py: parquet=asri_history.parquet, window 2021-01-01..2024-12-31, rolling D-Y warmup=60 VAR(1) GFEVD H=10, common index intersection, labels=30d forward pre-windows of {Terra 2022-05-12, Celsius/3AC 2022-06-17, FTX 2022-11-11, SVB 2023-03-11}, AUROC/AUPRC=trapezoidal (compute_roc_metrics).",
+    "n_observations": 1402,
+    "n_crisis_imminent": 124,
+    "n_non_crisis": 1278,
+    "prevalence": 0.0884450784593438,
+    "sample_span": [
+      "2021-03-01",
+      "2024-12-31"
+    ],
+    "asri_auroc_reproduced": 0.8657207582412034,
+    "bootstrap": {
+      "ci_method": "iid_day_percentile (matches baseline_comparison.py)",
+      "distinguishability_test": "PAIRED iid-day bootstrap of AUROC(ASRI)-AUROC(base) on the SAME resampled days; distinguishable iff 95% delta-CI excludes 0.",
+      "n_boot": 1000,
+      "seed": 42,
+      "caveat": "Only ~4 independent crisis episodes; i.i.d.-day bootstrap UNDERSTATES sampling uncertainty (moving_block_bootstrap_roc.json is the honest, wider CI). Treat 'distinguishable' verdicts as optimistic upper bounds on separability."
+    },
+    "data_sources": {
+      "fred": "FRED public CSV fredgraph.csv (DGS10, VIXCLS; non-revised market series)",
+      "crypto": "DefiLlama coins API chart/coingecko:{bitcoin,ethereum} (same source as backfill BTC)",
+      "contagion_risk": "results/data/asri_history.parquet (engineered sub-index)",
+      "fetch_status": {
+        "B1_market_return": {
+          "btc": "ok (2021-01-01..2025-02-03, 1322 pts)",
+          "eth": "ok (2021-01-01..2025-02-03, 1315 pts)"
+        },
+        "B2_macro": {
+          "dgs10": "ok (2020-12-01..2025-01-31)",
+          "vixcls": "ok (2020-12-01..2025-01-31)"
+        }
+      }
+    },
+    "contagion_risk_stationarity": {
+      "adf_pvalue": 0.14025607349779085,
+      "kpss_level_stat": 2.2171741168034673,
+      "note": "paper reports ADF p~0.069, KPSS~2.06"
+    },
+    "no_fabrication": "Raw VIX/10Y/BTC/ETH re-fetched live from the backfill's own sources; any unreachable series is reported ABSENT, not invented."
+  },
+  "baselines": {
+    "asri": {
+      "label": "ASRI composite (4-channel) [reference]",
+      "family": "reference",
+      "auroc": 0.8657207582412034,
+      "auroc_ci": [
+        0.8416311645728634,
+        0.8878228102029668
+      ],
+      "auprc": 0.29772525678981343,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.352059925093633,
+      "recall_at_youden": 0.7580645161290323,
+      "f1_at_youden": 0.48081841432225064,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.0,
+        "delta_ci": [
+          0.0,
+          0.0
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 0.0,
+        "distinguishable_from_asri": false
+      },
+      "note": "Headline; weights tuned on these events. \u0394 vs itself = 0 by construction."
+    },
+    "ret30_btc": {
+      "label": "BTC 30-day return",
+      "family": "market_return",
+      "auroc": 0.6743431016204756,
+      "auroc_ci": [
+        0.6305540409446259,
+        0.7163731509491742
+      ],
+      "auprc": 0.14649320830346624,
+      "orientation_sign": -1,
+      "precision_at_youden": 0.12680756395995552,
+      "recall_at_youden": 0.9193548387096774,
+      "f1_at_youden": 0.22287390029325513,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.1913776566207278,
+        "delta_ci": [
+          0.13843337221554788,
+          0.24478987651893533
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 1.0,
+        "distinguishable_from_asri": true
+      },
+      "note": "trailing 30 calendar-day return; sign flips so decline=stress"
+    },
+    "ret30_eth": {
+      "label": "ETH 30-day return",
+      "family": "market_return",
+      "auroc": 0.6660009339189258,
+      "auroc_ci": [
+        0.6159759070348597,
+        0.7163232232258504
+      ],
+      "auprc": 0.19209847286941334,
+      "orientation_sign": -1,
+      "precision_at_youden": 0.20987654320987653,
+      "recall_at_youden": 0.4112903225806452,
+      "f1_at_youden": 0.2779291553133515,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.19971982432227764,
+        "delta_ci": [
+          0.14603318539522298,
+          0.2544911690940216
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 1.0,
+        "distinguishable_from_asri": true
+      },
+      "note": "trailing 30 calendar-day return; sign flips so decline=stress"
+    },
+    "ret30_btceth_ew": {
+      "label": "BTC/ETH 30-day return (equal-weight)",
+      "family": "market_return",
+      "auroc": 0.681129789489626,
+      "auroc_ci": [
+        0.6342932177963562,
+        0.7280604601456486
+      ],
+      "auprc": 0.17675318297705758,
+      "orientation_sign": -1,
+      "precision_at_youden": 0.11921891058581706,
+      "recall_at_youden": 0.9354838709677419,
+      "f1_at_youden": 0.21148587055606197,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.18459096875157743,
+        "delta_ci": [
+          0.13221028334353785,
+          0.2381478207550699
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 1.0,
+        "distinguishable_from_asri": true
+      },
+      "note": "EW avg of BTC & ETH trailing 30d returns; PRIMARY market-return proxy"
+    },
+    "bank_vix10y": {
+      "label": "VIX+10Y macro composite (Bank_t alone)",
+      "family": "macro_offshelf",
+      "auroc": 0.7731271139381091,
+      "auroc_ci": [
+        0.7327785411209549,
+        0.8123369178194935
+      ],
+      "auprc": 0.26285327181046564,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.18095238095238095,
+      "recall_at_youden": 0.7661290322580645,
+      "f1_at_youden": 0.29275808936825887,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.09259364430309436,
+        "delta_ci": [
+          0.055366990890844583,
+          0.13000239989204532
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 1.0,
+        "distinguishable_from_asri": true
+      },
+      "note": "0.6*norm100(DGS10,[2,6]) + 0.4*norm100(VIXCLS,[12,40]); the paper's Bank_t construction evaluated standalone. No crypto-native construction."
+    },
+    "treasury10y_only": {
+      "label": "10Y Treasury stress alone (norm100[2,6])",
+      "family": "macro_offshelf",
+      "auroc": 0.5006562673532233,
+      "auroc_ci": [
+        0.4646206965420079,
+        0.5385536099809005
+      ],
+      "auprc": 0.07981517738329501,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.12487411883182276,
+      "recall_at_youden": 1.0,
+      "f1_at_youden": 0.22202327663384064,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.3650644908879801,
+        "delta_ci": [
+          0.32994700736015925,
+          0.39963400700796015
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 1.0,
+        "distinguishable_from_asri": true
+      },
+      "note": "single FRED series, no construction"
+    },
+    "vix_only": {
+      "label": "VIX stress alone (norm100[12,40])",
+      "family": "macro_offshelf",
+      "auroc": 0.8749368973698823,
+      "auroc_ci": [
+        0.8499824705997273,
+        0.8973975381050767
+      ],
+      "auprc": 0.35414261820410725,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.22772277227722773,
+      "recall_at_youden": 0.9274193548387096,
+      "f1_at_youden": 0.3656597774244833,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": -0.009216139128678913,
+        "delta_ci": [
+          -0.04121038762869524,
+          0.024714488701020543
+        ],
+        "p_two_sided": 0.576,
+        "frac_boot_asri_higher": 0.288,
+        "distinguishable_from_asri": false
+      },
+      "note": "single FRED series, no construction"
+    },
+    "cr_raw": {
+      "label": "Contagion Risk (raw, canon anchor)",
+      "family": "cr_check",
+      "auroc": 0.8504814730677974,
+      "auroc_ci": [
+        0.8241760667350149,
+        0.8750840674765227
+      ],
+      "auprc": 0.2849399595179268,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.28488372093023256,
+      "recall_at_youden": 0.7903225806451613,
+      "f1_at_youden": 0.4188034188034188,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.015239285173406003,
+        "delta_ci": [
+          0.004204805253039681,
+          0.027091840707921942
+        ],
+        "p_two_sided": 0.006,
+        "frac_boot_asri_higher": 0.997,
+        "distinguishable_from_asri": true
+      },
+      "note": "reproduces the single-channel CR AUROC the demotion rests on"
+    },
+    "cr_detrended": {
+      "label": "Contagion Risk (linear-detrended)",
+      "family": "cr_check",
+      "auroc": 0.9118266949366449,
+      "auroc_ci": [
+        0.8960351370055698,
+        0.9266296172562329
+      ],
+      "auprc": 0.3688691890141442,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.3020304568527919,
+      "recall_at_youden": 0.9596774193548387,
+      "f1_at_youden": 0.45945945945945954,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": -0.046105936695441496,
+        "delta_ci": [
+          -0.06405958716549422,
+          -0.03017453125662996
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 0.0,
+        "distinguishable_from_asri": true
+      },
+      "note": "CR minus OLS linear time trend on the common sample"
+    },
+    "cr_detrended_quad": {
+      "label": "Contagion Risk (quadratic-detrended)",
+      "family": "cr_check",
+      "auroc": 0.832147003887122,
+      "auroc_ci": [
+        0.8060260292384152,
+        0.8560935148303654
+      ],
+      "auprc": 0.2593763886482425,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.218436873747495,
+      "recall_at_youden": 0.8790322580645161,
+      "f1_at_youden": 0.34991974317817015,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.03357375435408139,
+        "delta_ci": [
+          0.009486041234367864,
+          0.057572192147123565
+        ],
+        "p_two_sided": 0.006,
+        "frac_boot_asri_higher": 0.997,
+        "distinguishable_from_asri": true
+      },
+      "note": "CR minus OLS quadratic time trend; a parabola can absorb the mid-sample crisis hump, so this is a lower bound on detrended skill"
+    },
+    "cr_first_diff": {
+      "label": "Contagion Risk (first-differenced)",
+      "family": "cr_check",
+      "auroc": 0.5465192589227119,
+      "auroc_ci": [
+        0.4828457724394184,
+        0.6074486546968964
+      ],
+      "auprc": 0.13961108802872482,
+      "orientation_sign": 1,
+      "precision_at_youden": 0.1457142857142857,
+      "recall_at_youden": 0.4112903225806452,
+      "f1_at_youden": 0.21518987341772153,
+      "paired_vs_asri": {
+        "delta_auroc_asri_minus_base": 0.3192014993184915,
+        "delta_ci": [
+          0.2559031766020529,
+          0.3839402560548805
+        ],
+        "p_two_sided": 0.0,
+        "frac_boot_asri_higher": 1.0,
+        "distinguishable_from_asri": true
+      },
+      "note": "CR_t - CR_{t-1}; stationary increment series"
+    }
+  }
+}

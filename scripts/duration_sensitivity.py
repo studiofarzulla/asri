@@ -8,7 +8,9 @@ without duration/mark-to-market nuance"
 Shows how duration-adjusting Treasury positions affects SCR and overall detection.
 """
 
+import io
 import sys
+import urllib.request
 from pathlib import Path
 from datetime import datetime
 
@@ -17,6 +19,38 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+
+def _fetch_dgs10_from_fred(out_path: Path) -> bool:
+    """Fetch FRED DGS10 (10Y Treasury constant maturity) from the public CSV
+    endpoint (no API key) and cache it to ``out_path`` with 'date','yield' columns.
+
+    DGS10 is a non-revised public series, so a live pull reproduces the historical
+    values used in the backtest. Returns True on success, False if unreachable.
+    We never synthesise a yield path: on failure the caller aborts cleanly.
+    """
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:
+            raw = r.read().decode("utf-8")
+    except Exception as e:  # network/SSL/HTTP — report, do not fabricate
+        print(f"    [warn] FRED DGS10 fetch failed: {e}")
+        return False
+    raw_df = pd.read_csv(io.StringIO(raw))
+    # FRED CSV header is 'observation_date' (or legacy 'DATE') + 'DGS10';
+    # missing observations are encoded as '.', coerced to NaN and dropped.
+    date_col = raw_df.columns[0]
+    val_col = "DGS10" if "DGS10" in raw_df.columns else raw_df.columns[1]
+    out = pd.DataFrame(
+        {
+            "date": pd.to_datetime(raw_df[date_col]),
+            "yield": pd.to_numeric(raw_df[val_col], errors="coerce"),
+        }
+    ).dropna()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out.to_csv(out_path, index=False)
+    print(f"    [ok] fetched FRED DGS10 -> {out_path} ({len(out)} obs)")
+    return True
 
 
 # Crisis events for detection testing
@@ -264,13 +298,17 @@ def main():
     treasury_path = PROJECT_ROOT / "results" / "data" / "treasury_dgs10.csv"
     if not treasury_path.exists():
         print(
-            f"Real Treasury yield data not found at {treasury_path}.\n"
-            "This analysis requires FRED DGS10 (10-year Treasury constant maturity)\n"
-            "aligned to the ASRI sample. Download DGS10 from FRED and save it as a CSV\n"
-            "with 'date' and 'yield' columns, then re-run. Aborting without generating\n"
-            "any synthetic yield."
+            f"Real Treasury yield data not found at {treasury_path};\n"
+            "attempting a one-off fetch from the FRED public CSV endpoint (DGS10)..."
         )
-        return
+        if not _fetch_dgs10_from_fred(treasury_path):
+            print(
+                "FRED fetch unavailable. This analysis requires FRED DGS10 (10-year\n"
+                "Treasury constant maturity) aligned to the ASRI sample. Download DGS10\n"
+                "from FRED and save it as a CSV with 'date' and 'yield' columns, then\n"
+                "re-run. Aborting without generating any synthetic yield."
+            )
+            return
 
     ty = pd.read_csv(treasury_path)
     ty["date"] = pd.to_datetime(ty["date"])

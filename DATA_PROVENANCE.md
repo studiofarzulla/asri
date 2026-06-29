@@ -130,6 +130,30 @@ remain reproducible **only** from the frozen parquet.
   `ASRI_PEG_INTRADAY=1` stress-sensitive peg variant (sensitivity only).
 - `data/snapshots/` — frozen universe snapshots (empty until you run the dumper).
 
+### Analysis inputs/outputs with generators (provenance closers)
+
+- `results/data/treasury_dgs10.csv` (**FRED DGS10**, 10Y Treasury constant
+  maturity) — a manual FRED input that is **not committed**. It is required only
+  by `scripts/duration_sensitivity.py` (Reviewer-Q6 duration sensitivity). That
+  script now **fetches it on demand** from the FRED public CSV endpoint
+  (`fredgraph.csv?id=DGS10`, no API key) and caches it to this path; DGS10 is a
+  **non-revised** public series, so a live pull reproduces the historical values.
+  If FRED is unreachable the script aborts cleanly without synthesising a yield.
+- `results/data/dy_rolling_connectedness_daily.csv` (rolling Diebold--Yilmaz total
+  connectedness; 60-day rolling VAR(1), generalized FEVD H=10, on the four
+  sub-indices; paper window, mean ≈ 28.74%) — **frozen released artefact**. Its
+  generator is now in the repo: `scripts/build_dy_daily.py` calls the same
+  `rolling_connectedness()` routine on the frozen parquet sub-indices and writes
+  the CSV. **Caveat (same class as sec. 2):** the released CSV was built from the
+  *pre-repro* sub-index series; the re-frozen parquet now carries more valid
+  sub-index days, so a fresh regen **drifts** (≈44%) and does **not** bit-reproduce
+  the released figure. The generator therefore refuses to overwrite the frozen CSV
+  unless `ASRI_DY_FORCE=1` (it writes a `*.regen.csv` sibling by default). The
+  released CSV remains the artefact of record.
+- Bybit specificity readings (supplement Table `tab:bybit`) are recomputed from
+  the frozen parquet by `scripts/verify_deferred_validation.py` (now
+  cross-referenced in the table caption).
+
 ## 5. One-line summary
 
 > The published ASRI series is a **frozen released dataset** (sha256 above; Zenodo

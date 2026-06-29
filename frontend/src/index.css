@@ -50,7 +50,7 @@ body {
 @keyframes asri-rise-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -59,11 +59,124 @@ body {
 }
 
 .asri-rise-in {
-  animation: asri-rise-in 0.45s ease-out both;
+  animation: asri-rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Staggered children: fan the entrance of direct children. */
+.asri-stagger > * {
+  animation: asri-rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.asri-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.asri-stagger > *:nth-child(2) { animation-delay: 55ms; }
+.asri-stagger > *:nth-child(3) { animation-delay: 110ms; }
+.asri-stagger > *:nth-child(4) { animation-delay: 165ms; }
+.asri-stagger > *:nth-child(5) { animation-delay: 220ms; }
+.asri-stagger > *:nth-child(6) { animation-delay: 275ms; }
+.asri-stagger > *:nth-child(7) { animation-delay: 330ms; }
+.asri-stagger > *:nth-child(8) { animation-delay: 385ms; }
+.asri-stagger > *:nth-child(9) { animation-delay: 440ms; }
+.asri-stagger > *:nth-child(n + 10) { animation-delay: 495ms; }
+
+/* ------------------------------------------------------------------ */
+/* Glass surface system — the shared depth treatment for every card.   */
+/* Translucent burgundy-tinted fill, backdrop blur, layered border,    */
+/* soft shadow, and a faint top-edge highlight line.                   */
+/* ------------------------------------------------------------------ */
+.asri-glass {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid rgba(127, 74, 85, 0.18);
+  background: linear-gradient(
+    180deg,
+    rgba(32, 19, 23, 0.62) 0%,
+    rgba(13, 9, 11, 0.5) 100%
+  );
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Top-edge highlight line. */
+.asri-glass::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Interactive cards: lift + glow on hover. */
+.asri-glass-interactive {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+.asri-glass-interactive:hover {
+  transform: translateY(-3px);
+  border-color: rgba(192, 64, 85, 0.45);
+  box-shadow:
+    0 30px 56px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(192, 64, 85, 0.16),
+    0 0 22px rgba(192, 64, 85, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Gentle pulse for the live/"daily updates" freshness dot. */
+@keyframes asri-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.asri-pulse {
+  animation: asri-pulse 2.4s ease-in-out infinite;
+}
+
+/* Expanding ring for the live indicator. */
+@keyframes asri-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  75%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.asri-ping {
+  animation: asri-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .asri-rise-in {
+  .asri-rise-in,
+  .asri-stagger > *,
+  .asri-pulse,
+  .asri-ping {
     animation: none;
+  }
+  .asri-glass-interactive {
+    transition: none;
+  }
+  .asri-glass-interactive:hover {
+    transform: none;
   }
 }

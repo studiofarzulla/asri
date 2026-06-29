@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-CODE = Path("/home/purrpower/Resurrexi/projects/papers/papers-official/asri/code")
+CODE = Path(__file__).resolve().parent.parent
 SCRIPTS = CODE / "scripts"
 sys.path.insert(0, str(CODE / "src"))
 

@@ -504,8 +504,9 @@ def _load_real_subindices() -> pd.DataFrame:
         "Real ASRI sub-index series required (DATETIME-indexed columns: "
         "stablecoin_risk, defi_liquidity_risk, contagion_risk, "
         "arbitrage_opacity). Load the released data export or the database, then "
-        "run_ablation_analysis(sub_indices). See scripts/investigate_ablation.py "
-        "for the real-data driver. The synthetic results helper was removed."
+        "run_ablation_analysis(sub_indices). See this module's main() (and "
+        "scripts/run_full_validation.py) for the real-data driver. The synthetic "
+        "results helper was removed."
     )
 
 

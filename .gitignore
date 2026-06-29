@@ -118,3 +118,16 @@ results/tvl_respec_jun2026/
 *.bak-*
 results/data/asri_generated.parquet
 results/data/asri_history_pegfix*.parquet
+
+# Round-2 review + dashboard-redesign session scratch (Jun 2026)
+.pre-round2-bak/
+.pre-cleanup-bak/
+**/.pre-redesign-bak/
+*.pre-cleanup-bak
+docs/snapshots/
+docs/ROLLBACK_*.md
+data/_ohlc_intraday_lows_*.json
+scripts/peg_rerun_compare.py
+scripts/run_peg_rerun_suite.sh
+scripts/regenerate_asri_with_peg.py
+scripts/enrich_peg_intraday.py

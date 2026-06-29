@@ -19,6 +19,7 @@ Canon targets (must match tab:event_study / tab:roc_metrics):
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -37,7 +38,10 @@ sys.path.insert(0, str(SRC))
 sys.path.insert(0, str(SCRIPTS))
 
 DATA = PROJECT_ROOT / "results" / "data" / "asri_history.parquet"
-OUT = PROJECT_ROOT.parent / "arxiv-submission" / "figures"
+# Default to an in-tree output dir so the repo is self-contained; override with
+# ASRI_FIGURES_OUT (e.g. point it at ../arxiv-submission/figures when refreshing
+# the manuscript figures).
+OUT = Path(os.environ.get("ASRI_FIGURES_OUT", str(PROJECT_ROOT / "results" / "figures")))
 OUT.mkdir(parents=True, exist_ok=True)
 
 # --- canonical constants (mirror scripts/run_full_validation.py) -------------

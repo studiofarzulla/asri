@@ -58,11 +58,11 @@ export function ScenarioSandbox({ subIndices, labelByKey }: ScenarioSandboxProps
           : "text-emerald-300";
 
   return (
-    <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-5 space-y-4 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+    <section className="asri-glass p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4 text-burgundy-300" />
-          <h2 className="text-sm font-semibold text-zinc-100">Scenario Sandbox</h2>
+          <h2 className="text-sm font-semibold text-zinc-100 font-mono tracking-tight">Scenario Sandbox</h2>
         </div>
         <button
           type="button"

@@ -13,11 +13,11 @@ export function ValidationSnapshot({
   error,
 }: ValidationSnapshotProps) {
   return (
-    <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-5 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+    <section className="asri-glass p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FlaskConical className="h-4 w-4 text-burgundy-300" />
-          <h2 className="text-sm font-semibold text-zinc-100">Validation Snapshot</h2>
+          <h2 className="text-sm font-semibold text-zinc-100 font-mono tracking-tight">Validation Snapshot</h2>
         </div>
         <ShieldCheck className="h-4 w-4 text-emerald-300" />
       </div>

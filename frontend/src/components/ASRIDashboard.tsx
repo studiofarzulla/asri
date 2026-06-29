@@ -23,8 +23,6 @@ import {
   Network,
   Eye,
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
   ExternalLink,
   FileText,
   Github,
@@ -43,6 +41,8 @@ import { ScenarioSandbox } from "./dashboard/ScenarioSandbox";
 import { ValidationSnapshot } from "./dashboard/ValidationSnapshot";
 import { RegimeRibbon } from "./dashboard/RegimeRibbon";
 import { BenchmarkHeadline } from "./dashboard/BenchmarkHeadline";
+import { RiskGauge } from "./dashboard/RiskGauge";
+import { riskHex, riskSurface } from "../lib/dashboard/risk";
 import { CRISIS_EVENTS, NON_SYSTEMIC_EVENTS } from "../lib/dashboard/events";
 import {
   computeContributionRows,
@@ -112,32 +112,6 @@ const overlayColors: Record<SubIndexKey, string> = {
   defi_liquidity_risk: "#a78bfa",
   contagion_risk: "#5eb0b8",
   arbitrage_opacity: "#d98a9a",
-};
-
-const getAlertColor = (value: number) => {
-  if (value >= 70) {
-    // High band — burgundy.
-    return { bg: "bg-burgundy-950/50", border: "border-burgundy-700", text: "text-burgundy-300" };
-  }
-  if (value >= 50) {
-    return { bg: "bg-amber-950/50", border: "border-amber-800", text: "text-amber-400" };
-  }
-  return { bg: "bg-emerald-950/50", border: "border-emerald-800", text: "text-emerald-400" };
-};
-
-const getAlertBadgeColor = (level: string) => {
-  switch (level.toLowerCase()) {
-    case "high":
-    case "critical": // legacy alias — server may still emit "critical"
-      return "bg-burgundy-900/80 text-burgundy-200 border-burgundy-700";
-    case "elevated":
-      return "bg-amber-900/80 text-amber-300 border-amber-700";
-    case "moderate":
-      return "bg-orange-900/80 text-orange-300 border-orange-700";
-    case "low":
-    default:
-      return "bg-emerald-900/80 text-emerald-300 border-emerald-700";
-  }
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -649,8 +623,6 @@ export default function ASRIDashboard() {
     );
   }
 
-  const alertColors = current ? getAlertColor(current.asri) : getAlertColor(0);
-
   return (
     <div className="min-h-screen text-zinc-100 relative overflow-x-clip">
       <div
@@ -682,7 +654,29 @@ export default function ASRIDashboard() {
             </div>
 
             {current && (
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-zinc-400 font-mono tracking-wider">
+                  <span className="relative flex h-2 w-2">
+                    <span className="asri-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                  </span>
+                  LIVE
+                </span>
+                <span className="hidden md:inline px-2 py-1 rounded-md border border-zinc-600/60 bg-zinc-900/70 text-[11px] text-zinc-300 font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  {current.methodology_profile ?? "paper_v2"}
+                </span>
+                <div
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                  style={{
+                    background: riskSurface(current.asri).background,
+                    borderColor: riskSurface(current.asri).borderColor,
+                  }}
+                >
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500">ASRI</span>
+                  <span className="text-base font-bold tabular-nums" style={{ color: riskHex(current.asri) }}>
+                    {current.asri.toFixed(2)}
+                  </span>
+                </div>
                 <button
                   onClick={() => fetchData(true)}
                   disabled={refreshing}
@@ -692,66 +686,53 @@ export default function ASRIDashboard() {
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 </button>
-                <span className="px-2 py-1 rounded-md border border-zinc-600/60 bg-zinc-900/70 text-[11px] text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  Profile: {current.methodology_profile ?? "paper_v2"}
-                </span>
-                <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border shadow-[0_12px_26px_rgba(0,0,0,0.28)] ${alertColors.bg} ${alertColors.border}`}>
-                  <div className="text-right">
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Current Index</p>
-                    <p className={`text-2xl font-bold font-mono ${alertColors.text}`}>
-                      {current.asri.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5">
-                    {current.trend === "rising" ? (
-                      <TrendingUp className="h-4 w-4 text-red-400" />
-                    ) : current.trend === "falling" ? (
-                      <TrendingDown className="h-4 w-4 text-emerald-400" />
-                    ) : (
-                      <div className="h-4 w-4 flex items-center justify-center">
-                        <div className="h-0.5 w-3 bg-zinc-500 rounded" />
-                      </div>
-                    )}
-                    <span className="text-[10px] text-zinc-500 capitalize">{current.trend}</span>
-                  </div>
-                </div>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="asri-stagger max-w-7xl mx-auto px-6 py-8 space-y-8">
         {current && (
-          <div className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-5 py-3 rounded-xl border shadow-[0_12px_28px_rgba(0,0,0,0.2)] ${alertColors.bg} ${alertColors.border}`}>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border ${getAlertBadgeColor(current.alert_level)}`}>
-                {current.alert_level}
-              </span>
-              <span className="text-sm text-zinc-400">
-                Systemic risk level as of {new Date(current.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-              </span>
-            </div>
-            <div className="text-xs text-zinc-500">
-              30d avg: <span className="font-mono text-zinc-300">{current.asri_30d_avg.toFixed(2)}</span>
-            </div>
-          </div>
+          <RiskGauge
+            value={current.asri}
+            avg30d={current.asri_30d_avg}
+            trend={current.trend}
+            alertLevel={current.alert_level}
+            sparkline={sortedTimeseries.slice(-30).map((point) => point.asri)}
+            lastUpdate={current.last_update}
+          />
+        )}
+
+        {current && (
+          <p className="flex items-center gap-2 px-1 text-xs text-zinc-500">
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: riskHex(current.asri) }}
+              aria-hidden
+            />
+            Systemic risk level as of{" "}
+            {new Date(current.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
         )}
 
         <BenchmarkHeadline />
 
-        <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-4 sm:p-5 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        <section className="asri-glass p-4 sm:p-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
             <div className="flex items-center gap-2 text-zinc-400">
-              <Database className="h-3.5 w-3.5" />
+              <Database className="h-3.5 w-3.5 text-burgundy-300/80" />
               <span>{(timeseriesMeta?.points ?? timeseries.length).toLocaleString()} total points</span>
             </div>
             <div className="flex items-center gap-2 text-zinc-400">
-              <Activity className="h-3.5 w-3.5" />
+              <span className="relative flex h-2 w-2" aria-hidden>
+                <span className="asri-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400/80" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              </span>
               <span>{timeseriesMeta?.frequency ?? "daily"} updates</span>
             </div>
             <div className="flex items-center gap-2 text-zinc-400">
-              <Shield className="h-3.5 w-3.5" />
+              <Shield className="h-3.5 w-3.5 text-burgundy-300/80" />
               <span>
                 Last update:{" "}
                 {current ? new Date(current.last_update).toLocaleString("en-GB") : "n/a"}
@@ -765,11 +746,11 @@ export default function ASRIDashboard() {
           rangeLabel={focusReplay ? "Replay Window" : selectedRange}
         />
 
-        <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-6 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+        <section className="asri-glass p-6">
           <div className="flex flex-col gap-4 mb-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-zinc-100">Historical ASRI</h2>
+                <h2 className="text-base font-semibold text-zinc-100 font-mono tracking-tight">Historical ASRI</h2>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   Crisis annotations, overlays, and interactive hover telemetry
                 </p>
@@ -833,9 +814,9 @@ export default function ASRIDashboard() {
           </div>
         </section>
 
-        <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-6 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+        <section className="asri-glass p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-zinc-100">Component Contribution</h2>
+            <h2 className="text-base font-semibold text-zinc-100 font-mono tracking-tight">Component Contribution</h2>
             <span className="text-xs text-zinc-400">Current weighted decomposition</span>
           </div>
           <div className="space-y-3">
@@ -861,7 +842,7 @@ export default function ASRIDashboard() {
         <section>
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-base font-semibold">Risk Components</h2>
+              <h2 className="text-base font-semibold font-mono tracking-tight">Risk Components</h2>
               <p className="text-xs text-zinc-500 mt-0.5">Four-factor decomposition with methodology details</p>
             </div>
           </div>
@@ -870,33 +851,39 @@ export default function ASRIDashboard() {
               (Object.keys(subIndexInfo) as SubIndexKey[]).map((key) => {
                 const info = subIndexInfo[key];
                 const value = current.sub_indices[key];
-                const colors = getAlertColor(value);
+                const hex = riskHex(value);
+                const surf = riskSurface(value, { fill: 0.12, border: 0.42 });
 
                 return (
-                  <div
-                    key={key}
-                    className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-5 hover:border-zinc-500/60 transition-all shadow-[0_16px_34px_rgba(0,0,0,0.24)]"
-                  >
+                  <div key={key} className="asri-glass asri-glass-interactive p-5">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${colors.bg} ${colors.border} border`}>
-                          <div className={colors.text}>{info.icon}</div>
+                        <div
+                          className="p-2.5 rounded-xl border"
+                          style={{ background: surf.background, borderColor: surf.borderColor, color: hex }}
+                        >
+                          {info.icon}
                         </div>
                         <div>
-                          <h3 className="text-sm font-medium text-zinc-200">{info.label}</h3>
+                          <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+                            {info.label}
+                            <span
+                              className="inline-block h-2 w-2 rounded-full"
+                              style={{ background: hex, boxShadow: `0 0 8px ${hex}` }}
+                              title={`${info.shortLabel} risk health`}
+                            />
+                          </h3>
                           <p className="text-xs text-zinc-400 mt-0.5">{info.description}</p>
                         </div>
                       </div>
-                      <span className={`text-2xl font-bold font-mono ${colors.text}`}>
+                      <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: hex }}>
                         {value.toFixed(1)}
                       </span>
                     </div>
                     <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          value >= 70 ? "bg-burgundy-500" : value >= 50 ? "bg-amber-500" : "bg-emerald-500"
-                        }`}
-                        style={{ width: `${Math.min(value, 100)}%` }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(value, 100)}%`, background: hex, boxShadow: `0 0 12px ${hex}55` }}
                       />
                     </div>
                     <p className="text-[11px] text-zinc-400 mt-3 leading-relaxed">{info.methodology}</p>
@@ -918,7 +905,7 @@ export default function ASRIDashboard() {
           error={validationError}
         />
 
-        <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-5 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+        <section className="asri-glass p-5">
           <button
             type="button"
             onClick={() => setShowAdvancedPanels((previous) => !previous)}
@@ -978,13 +965,13 @@ export default function ASRIDashboard() {
           </section>
         )}
 
-        <section className="bg-gradient-to-br from-zinc-900/55 to-zinc-800/35 backdrop-blur-sm rounded-2xl border border-zinc-700/45 p-6 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+        <section className="asri-glass p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-burgundy-900/30 rounded-lg border border-burgundy-800/50">
               <Code className="h-5 w-5 text-burgundy-300" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-zinc-100">Public API</h2>
+              <h2 className="text-base font-semibold text-zinc-100 font-mono tracking-tight">Public API</h2>
               <p className="text-xs text-zinc-400 mt-0.5">RESTful endpoints for programmatic access</p>
             </div>
           </div>
@@ -996,7 +983,7 @@ export default function ASRIDashboard() {
               ["/asri/regime", "Current regime classification and transitions"],
               ["/asri/validation", "Statistical validation summary"],
             ].map(([path, description]) => (
-              <div key={path} className="bg-zinc-900/55 rounded-xl p-4 border border-zinc-700/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+              <div key={path} className="asri-glass-interactive bg-zinc-900/55 rounded-xl p-4 border border-zinc-700/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="px-2 py-0.5 bg-burgundy-900/50 text-burgundy-200 text-xs font-mono rounded">GET</span>
                   <span className="text-sm font-mono text-zinc-300">{path}</span>
@@ -1029,14 +1016,14 @@ export default function ASRIDashboard() {
           </div>
         </section>
 
-        <section className="bg-zinc-900/30 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-6 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
-          <h2 className="text-sm font-semibold text-zinc-100 mb-4">Methodology and Resources</h2>
+        <section className="asri-glass p-6">
+          <h2 className="text-sm font-semibold text-zinc-100 mb-4 font-mono tracking-tight">Methodology and Resources</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <a
               href="https://arxiv.org/abs/2602.03874"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-3 bg-zinc-900/60 rounded-xl border border-zinc-700/45 hover:border-zinc-500/70 hover:bg-zinc-900 transition-all group"
+              className="asri-glass-interactive flex items-center gap-3 px-4 py-3 bg-zinc-900/60 rounded-xl border border-zinc-700/45 hover:border-zinc-500/70 hover:bg-zinc-900 group"
             >
               <FileText className="h-5 w-5 text-zinc-500 group-hover:text-burgundy-300 transition-colors" />
               <div className="flex-1 min-w-0">
@@ -1050,7 +1037,7 @@ export default function ASRIDashboard() {
               href={DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-3 bg-zinc-900/60 rounded-xl border border-zinc-700/45 hover:border-zinc-500/70 hover:bg-zinc-900 transition-all group"
+              className="asri-glass-interactive flex items-center gap-3 px-4 py-3 bg-zinc-900/60 rounded-xl border border-zinc-700/45 hover:border-zinc-500/70 hover:bg-zinc-900 group"
             >
               <Code className="h-5 w-5 text-zinc-500 group-hover:text-burgundy-300 transition-colors" />
               <div className="flex-1 min-w-0">
@@ -1064,7 +1051,7 @@ export default function ASRIDashboard() {
               href="https://github.com/studiofarzulla/asri"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-3 bg-zinc-900/60 rounded-xl border border-zinc-700/45 hover:border-zinc-500/70 hover:bg-zinc-900 transition-all group"
+              className="asri-glass-interactive flex items-center gap-3 px-4 py-3 bg-zinc-900/60 rounded-xl border border-zinc-700/45 hover:border-zinc-500/70 hover:bg-zinc-900 group"
             >
               <Github className="h-5 w-5 text-zinc-500 group-hover:text-burgundy-300 transition-colors" />
               <div className="flex-1 min-w-0">

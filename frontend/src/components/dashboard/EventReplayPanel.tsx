@@ -32,10 +32,10 @@ export function EventReplayPanel({
   currentReplayPoint,
 }: EventReplayPanelProps) {
   return (
-    <section className="bg-zinc-900/35 backdrop-blur-sm rounded-2xl border border-zinc-700/40 p-5 space-y-4 shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+    <section className="asri-glass p-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-100">Event Replay</h2>
+          <h2 className="text-sm font-semibold text-zinc-100 font-mono tracking-tight">Event Replay</h2>
           <p className="text-xs text-zinc-400">
             Scrub through crisis windows to inspect ASRI signal buildup
           </p>

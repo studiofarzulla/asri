@@ -40,7 +40,7 @@ export function BenchmarkHeadline() {
           return (
             <div
               key={metric.key}
-              className="rounded-xl border border-zinc-700/50 bg-zinc-900/45 p-4"
+              className="asri-glass-interactive rounded-xl border border-zinc-700/50 bg-zinc-900/45 p-4"
             >
               <div className="flex items-baseline justify-between">
                 <span className="text-xs font-medium text-zinc-300">{metric.label}</span>
