@@ -44,6 +44,9 @@ EVENTS = [
 HAC_LAGS = [3, 10, 20, 30]   # 3 ~ Newey-West auto floor(4*(T/100)^(2/9)); 20 = primary
 PRIMARY_LAG = 20
 LB_LAGS = [5, 10, 20]
+# paper-stated Kiefer-Vogelsang fixed-b 5% critical |t| at b = (L+1)/T = 21/41 ~ 0.51
+# (statsmodels maxlags=L -> L+1 nonzero Bartlett weights, so the KV bandwidth is (L+1)/T)
+FIXB_CRIT_5 = 3.52
 
 
 def load_asri() -> pd.Series:
@@ -167,11 +170,14 @@ def main() -> None:
             "primary_hac_lag": PRIMARY_LAG,
             "hac_primary_t": None if prim["t"] is None else round(prim["t"], 3),
             "hac_primary_p": None if prim["p"] is None else round(prim["p"], 4),
-            "survives_5pct_primary": None if prim.get("sig_5pct") is None else prim["sig_5pct"],
+            # normal-z flag kept under an explicit name: the paper disavows this reference
+            "sig_5pct_normal_reference": None if prim.get("sig_5pct") is None else prim["sig_5pct"],
+            "sig_5pct_fixed_b": None if prim["t"] is None else bool(abs(prim["t"]) > FIXB_CRIT_5),
         })
 
-    survivors = [r["name"] for r in results if r.get("survives_5pct_primary")]
-    fails = [r["name"] for r in results if r.get("survives_5pct_primary") is False]
+    survivors = [r["name"] for r in results if r.get("sig_5pct_normal_reference")]
+    fails = [r["name"] for r in results if r.get("sig_5pct_normal_reference") is False]
+    survivors_fixb = [r["name"] for r in results if r.get("sig_5pct_fixed_b")]
 
     out = {
         "method": "Newey-West HAC on event-window abnormal-signal series (OLS on constant)",
@@ -186,11 +192,17 @@ def main() -> None:
             "CAS t-stat == mean-abnormal t-stat (CAS=n*mean, SE(CAS)=n*SE(mean)). "
             "HAC p-values use the normal (z) reference per statsmodels HAC default. "
             "Paper's claim 'Ljung-Box p>0.10 for all events' is refuted below: the "
-            "abnormal/residual series are strongly serially correlated (AR1>0.9)."
+            "abnormal/residual series are strongly serially correlated (AR1>0.9). "
+            "The 'sig_5pct_normal_reference' flags use the normal (z) reference, which "
+            "the paper disavows at b=(L+1)/T~0.51; 'sig_5pct_fixed_b' applies the "
+            "paper's fixed-b critical |t|=3.52 (and the placebo test shows even that "
+            "reference has no crisis-specificity on this series)."
         ),
         "events": results,
-        "survivors_5pct_primary": survivors,
-        "fail_5pct_primary": fails,
+        "survivors_5pct_normal_reference": survivors,
+        "fail_5pct_normal_reference": fails,
+        "survivors_5pct_fixed_b": survivors_fixb,
+        "fixb_crit_5pct": FIXB_CRIT_5,
     }
 
     out_path = PROJECT_ROOT / "results" / "event_study_hac.json"
@@ -207,7 +219,7 @@ def main() -> None:
         print(f"{r['name']:<14}{r['cas']:>9.1f}{r['ar1_estimation_window']:>8.3f}"
               f"{r['ar1_event_window']:>8.3f} | {r['naive_paper']['t']:>8.2f}"
               f"{r['naive_paper']['p']:>11.2e} | {r['hac_primary_t']:>12.2f}"
-              f"{r['hac_primary_p']:>10.3f}   {r['survives_5pct_primary']}")
+              f"{r['hac_primary_p']:>10.3f}   {r['sig_5pct_normal_reference']}")
     print("-" * 100)
     print("HAC t across lag sweep (L = 3 / 10 / 20 / 30):")
     for r in results:

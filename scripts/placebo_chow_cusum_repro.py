@@ -46,7 +46,8 @@ from asri.validation.robustness import structural_break_test  # noqa: E402
 EST_W = (-90, -31)
 EVT_W = (-30, 10)
 HAC_LAG = 20
-# fixed-b (Kiefer-Vogelsang, Bartlett) critical |t| at b = L/n ~ 0.49 (paper: b~0.51)
+# fixed-b (Kiefer-Vogelsang, Bartlett) critical |t| at b = (L+1)/n = 21/41 ~ 0.51
+# (statsmodels maxlags=L -> L+1 nonzero Bartlett weights, so the KV bandwidth is (L+1)/n)
 FIXB_CRIT_5 = 3.52     # paper-stated 5% two-sided fixed-b critical |t|
 FIXB_CRIT_BONF = 5.73  # paper-stated Bonferroni-0.0125 fixed-b critical |t|
 NAIVE_CRIT_5 = 1.96

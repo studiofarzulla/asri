@@ -22,7 +22,7 @@
     10,
     20
   ],
-  "note": "CAS t-stat == mean-abnormal t-stat (CAS=n*mean, SE(CAS)=n*SE(mean)). HAC p-values use the normal (z) reference per statsmodels HAC default. Paper's claim 'Ljung-Box p>0.10 for all events' is refuted below: the abnormal/residual series are strongly serially correlated (AR1>0.9).",
+  "note": "CAS t-stat == mean-abnormal t-stat (CAS=n*mean, SE(CAS)=n*SE(mean)). HAC p-values use the normal (z) reference per statsmodels HAC default. Paper's claim 'Ljung-Box p>0.10 for all events' is refuted below: the abnormal/residual series are strongly serially correlated (AR1>0.9). The 'sig_5pct_normal_reference' flags use the normal (z) reference, which the paper disavows at b=(L+1)/T~0.51; 'sig_5pct_fixed_b' applies the paper's fixed-b critical |t|=3.52 (and the placebo test shows even that reference has no crisis-specificity on this series).",
   "events": [
     {
       "name": "Terra/Luna",
@@ -34,12 +34,12 @@
       "ar1_event_window": 0.7841,
       "naive_paper": {
         "t": 5.474,
-        "p": 2.5908243039829415e-06,
+        "p": 2.590824304204986e-06,
         "sig_1pct": true
       },
       "naive_iid_eventwindow": {
         "t": 4.757,
-        "p": 2.559692174481658e-05
+        "p": 2.5596921744816534e-05
       },
       "ljung_box": {
         "estimation_window_resid": {
@@ -122,7 +122,8 @@
       "primary_hac_lag": 20,
       "hac_primary_t": 1.719,
       "hac_primary_p": 0.0855,
-      "survives_5pct_primary": false
+      "sig_5pct_normal_reference": false,
+      "sig_5pct_fixed_b": false
     },
     {
       "name": "Celsius/3AC",
@@ -139,7 +140,7 @@
       },
       "naive_iid_eventwindow": {
         "t": 10.238,
-        "p": 9.749732582396682e-13
+        "p": 9.749732582396694e-13
       },
       "ljung_box": {
         "estimation_window_resid": {
@@ -222,7 +223,8 @@
       "primary_hac_lag": 20,
       "hac_primary_t": 3.488,
       "hac_primary_p": 0.0005,
-      "survives_5pct_primary": true
+      "sig_5pct_normal_reference": true,
+      "sig_5pct_fixed_b": false
     },
     {
       "name": "FTX Collapse",
@@ -239,7 +241,7 @@
       },
       "naive_iid_eventwindow": {
         "t": 9.548,
-        "p": 7.201960263937612e-12
+        "p": 7.20196026393759e-12
       },
       "ljung_box": {
         "estimation_window_resid": {
@@ -322,7 +324,8 @@
       "primary_hac_lag": 20,
       "hac_primary_t": 3.28,
       "hac_primary_p": 0.001,
-      "survives_5pct_primary": true
+      "sig_5pct_normal_reference": true,
+      "sig_5pct_fixed_b": false
     },
     {
       "name": "SVB Crisis",
@@ -339,7 +342,7 @@
       },
       "naive_iid_eventwindow": {
         "t": 11.516,
-        "p": 2.8267507407695085e-14
+        "p": 2.826750740769504e-14
       },
       "ljung_box": {
         "estimation_window_resid": {
@@ -422,15 +425,20 @@
       "primary_hac_lag": 20,
       "hac_primary_t": 3.856,
       "hac_primary_p": 0.0001,
-      "survives_5pct_primary": true
+      "sig_5pct_normal_reference": true,
+      "sig_5pct_fixed_b": true
     }
   ],
-  "survivors_5pct_primary": [
+  "survivors_5pct_normal_reference": [
     "Celsius/3AC",
     "FTX Collapse",
     "SVB Crisis"
   ],
-  "fail_5pct_primary": [
+  "fail_5pct_normal_reference": [
     "Terra/Luna"
-  ]
+  ],
+  "survivors_5pct_fixed_b": [
+    "SVB Crisis"
+  ],
+  "fixb_crit_5pct": 3.52
 }
