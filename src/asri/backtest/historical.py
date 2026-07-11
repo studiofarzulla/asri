@@ -207,8 +207,9 @@ class HistoricalDataFetcher:
             logger.info("Fetching full TVL history...")
             resp = await self.client.get(f"{self.DEFILLAMA_BASE}/v2/historicalChainTvl")
             resp.raise_for_status()
-            self._tvl_cache = resp.json()
-            logger.info(f"Cached {len(self._tvl_cache)} TVL data points")
+            data: list[dict] = resp.json()
+            self._tvl_cache = data
+            logger.info(f"Cached {len(data)} TVL data points")
 
     async def _ensure_stablecoin_cache(self, stablecoin_id: int):
         """Load and cache stablecoin history."""
@@ -394,7 +395,7 @@ class HistoricalDataFetcher:
             obs_date = obs.get("date", "")
             if obs_date <= target_str:
                 value = obs.get("value")
-                if value not in [".", None, ""]:
+                if value is not None and value not in (".", ""):
                     closest_value = float(value)
             else:
                 break  # Observations are sorted by date
@@ -423,8 +424,9 @@ class HistoricalDataFetcher:
                 resp = await self.client.get(self.FRED_BASE, params=params, timeout=30.0)
                 resp.raise_for_status()
                 data = resp.json()
-                self._sp500_cache = data.get("observations", [])
-                logger.info(f"Cached {len(self._sp500_cache)} S&P500 observations")
+                observations: list[dict] = data.get("observations", [])
+                self._sp500_cache = observations
+                logger.info(f"Cached {len(observations)} S&P500 observations")
             except Exception as e:
                 logger.warning("S&P500 cache failed", error=str(e))
                 self._sp500_cache = []
@@ -446,7 +448,7 @@ class HistoricalDataFetcher:
             obs_date = obs.get("date", "")
             if start_str <= obs_date <= end_str:
                 value = obs.get("value")
-                if value not in [".", None, ""]:
+                if value is not None and value not in (".", ""):
                     prices.append(float(value))
 
         return prices
@@ -467,9 +469,14 @@ class HistoricalDataFetcher:
 
         # 1. TVL Data
         await self._ensure_tvl_cache()
-        current_tvl, actual_date = self._find_closest_tvl(target_date, self._tvl_cache)
-        max_historical_tvl = self._get_max_tvl_before(target_date, self._tvl_cache)
-        tvl_30d_history = self._get_tvl_range(target_date, 30, self._tvl_cache)
+        tvl_data = self._tvl_cache
+        if not tvl_data:
+            # min() over an empty list downstream would raise anyway; fail with
+            # a diagnosable message so a dead source can't half-compute a row.
+            raise RuntimeError("TVL history unavailable (DeFiLlama historicalChainTvl fetch failed)")
+        current_tvl, actual_date = self._find_closest_tvl(target_date, tvl_data)
+        max_historical_tvl = self._get_max_tvl_before(target_date, tvl_data)
+        tvl_30d_history = self._get_tvl_range(target_date, 30, tvl_data)
         data_quality['tvl'] = f"ok (closest: {actual_date.date()})"
 
         # 2. Stablecoin Data
