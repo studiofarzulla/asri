@@ -7,7 +7,13 @@ Disambiguates the canonical series from sensitivity variants. Full provenance:
 
 | File | What it is |
 |------|------------|
-| **`asri_history.parquet`** | **THE published ASRI series.** 1841 rows, 2021-01-01→2026-01-15, max **84.70** on 2022-11-08, mean **39.20**. sha256 `f0fc1502…628a827d`, md5 `3e423789…2f88cea3`. Zenodo `10.5281/zenodo.17918239`. Every paper headline recomputes from this file. **Frozen — do not regenerate or overwrite.** |
+| **`asri_history.parquet`** | **THE published ASRI series.** 1841 rows, 2021-01-01→2026-01-15, max **84.70** on 2022-11-08, mean **39.20**. sha256 `f0fc1502…628a827d`, md5 `3e423789…2f88cea3`. Zenodo concept `10.5281/zenodo.17918238` (parquet deposited from v2.0.0; earlier versions were paper-PDF-only). Every paper headline recomputes from this file. **Frozen — do not regenerate or overwrite.** |
+
+## Open-pipeline full recompute (dashboard second series)
+
+| File | What it is |
+|------|------------|
+| `asri_open_full_20260711.parquet` | Full 2021-01-01→2026-07-10 recompute (2,017 rows) under the current committed pipeline, universe pinned `ASRI_SNAPSHOT_AS_OF=2026-07-11`. Backs the D1 `asri_daily_open` table / `series=open_full` API (`methodology_profile=open_pipeline_full`). NOT the paper series — levels not comparable to canon (projected-universe channels constant; see RUNBOOK_DASHBOARD.md). md5 `fa4c7d92…8ea65bf80`. Zenodo: same concept, from v2.0.0. |
 
 ## Peg-fix sensitivity variants (NOT the published series, NOT independent regens)
 
