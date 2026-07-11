@@ -89,20 +89,23 @@ worker doesn't yet support `?series=open_full`.
   went behind DeFiLlama's paid API ~mid-2026.** This file holds the endpoint's
   last public output (Wayback, 2024-12-22, 63 bridges) and is effectively
   permanent. Only feeds `bridge_exploit_frequency` (2.5% of ASRI).
-- Frontend timeseries end date is computed at fetch time (tomorrow UTC,
-  `frontend/src/components/ASRIDashboard.tsx`) — fixed 2026-07-11; it was a
-  hardcoded `end=2026-12-31` that would have truncated the chart from
-  2027-01-01. The fix is in source but the LIVE bundle predates it; it goes
-  live on the next frontend deploy.
-- Worker source verified against live (2026-07-11): the live `asri-api`
-  script was pulled via the CF API and is byte-identical to the committed
-  `workers/src/main.py` (EOL-insensitive diff = 0; the file is CRLF) — this
-  repo IS the deployed v2.1.0 and is safe to deploy from with
-  `wrangler deploy` in `workers/`. The worker's own omitted-`end` default
-  (2026-12-31, the same year-end fuse) is fixed in source to tomorrow-UTC;
-  it goes live on the next worker deploy. A stale v2.0.0 copy that
-  previously prompted a clobber warning here lives in the OLD duplicate
-  clone at `papers/github-repos/asri`, not in this repo.
+- Both year-end fuses are FIXED AND LIVE (2026-07-11): the frontend computes
+  its timeseries end at fetch time (tomorrow UTC) and the deployed worker
+  (v2.2.0) defaults an omitted `end` the same way — the old hardcoded
+  `end=2026-12-31` on both sides would have truncated everything from
+  2027-01-01.
+- Worker: repo source == deployed (v2.2.0, deployed 2026-07-11 from
+  `workers/` via `wrangler deploy`; file is CRLF — use an EOL-insensitive
+  diff when comparing against a CF API pull). A stale v2.0.0 copy lives in
+  the OLD duplicate clone at `papers/github-repos/asri`, not in this repo.
+- **Always build the production frontend from committed HEAD** (use
+  `git worktree add --detach <tmp> HEAD`, then `npm ci && npm run build`
+  there). Lesson from 2026-07-11: the live honesty-reframed benchmark
+  section had been deployed from UNCOMMITTED working-tree source since
+  30 Jun, so a clean HEAD build silently regressed production to the
+  retired "ASRI WINS" framing; caught by diffing the prior deployment
+  bundle and fixed by committing the live source (baccba8). Uncommitted
+  tree state must never be the only copy of anything public.
 - Frontend deploys are **direct-upload Cloudflare Pages** (project
   `asri-dashboard`), NOT git-connected — pushing to GitHub does not deploy.
   From `frontend/`: `npm run build`, then
