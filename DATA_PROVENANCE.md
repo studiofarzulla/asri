@@ -43,6 +43,37 @@ print(len(d), round(d['asri'].max(),4), round(d['asri'].mean(),4), d['asri'].idx
 # expect 1841 84.7 39.2022 2022-11-08
 ```
 
+### 1.1 The stored `asri` column is the series of record — recomposition is NOT an identity
+
+The parquet's `asri` column is **not** the Eq-6 weighted recomposition of its own
+sub-index columns. Recomposing (0.30·SCR + 0.25·DLR + 0.25·CR + 0.20·AO) from the
+stored sub-indices reproduces `asri` only approximately: mean gap +0.84 pts,
+MAE ≈ 1.06, max 6.34 on 2022-11-25; at the headline peak the stored value is
+**84.70** (2022-11-08) vs **81.06** recomposed. Cause: the sub-index columns were
+repaired *after* the aggregate `asri` column was generated (the post-generation
+sub-index repair), and the released aggregate was deliberately left untouched.
+The rule is:
+
+- **The stored `asri` column is the released series of record** — the paper's
+  numbers, the Zenodo deposit, and every published headline trace to it.
+- Recomposition from the stored sub-indices is a *different* (internally
+  consistent) series. If you want a series where Eq-6 holds row-by-row, use the
+  `open_pipeline_full` recompute (`asri_daily_open` in D1;
+  `results/data/asri_open_full_20260711.parquet`), not a recomposed canon.
+
+**Dashboard/API history:** the original one-shot D1 load recomputed `asri` from
+the sub-indices at load time and discarded the released column, so
+api.dissensus.ai had *never* served the published canon series (it served the
+recomposed one, peak 81.1 on 2022-11-08). Fixed 11 Jul 2026: the released `asri`
+values were backfilled onto all 1,841 `paper_canon` rows in D1 (1,495 rows
+changed), and as of worker **v2.3.0** the API serves the **stored** value for
+`paper_canon` rows while keeping read-time Eq-6 recomposition for
+pipeline-generated profiles (`open_pipeline_continuation`, `open_pipeline_full`),
+where it is an identity by construction (verified on every row of both). The
+canon rows' `asri_30d_avg`, `trend`, and `alert_level` columns were left as
+originally loaded (recomposition-derived): no endpoint serves them for canon
+rows, and the worker derives alert/trend from the served `asri` at read time.
+
 ## 2. Why the series is frozen and NOT regenerated from the pipeline
 
 The generation pipeline (`src/asri/backtest/{historical,backtest}.py`,

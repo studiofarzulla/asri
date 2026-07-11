@@ -64,6 +64,20 @@ def compute_asri(sub_indices: dict) -> float:
     return round(value, 1)
 
 
+def served_asri(row, sub_indices: dict) -> float:
+    """ASRI value to serve for a D1 row.
+
+    paper_canon rows serve the STORED asri: the frozen released series is the
+    dataset of record, and its asri column is NOT an Eq-6 recomposition of its
+    own sub-indices (post-generation sub-index repair; see DATA_PROVENANCE.md).
+    All other profiles keep read-time recomposition, which is an identity by
+    construction for pipeline-generated rows.
+    """
+    if row.get("methodology_profile") == "paper_canon":
+        return float(row["asri"])
+    return compute_asri(sub_indices)
+
+
 def options_response() -> Response:
     """Handle CORS preflight."""
     headers = Headers.new(
@@ -82,7 +96,7 @@ def handle_root():
     """Root endpoint."""
     return json_response({
         "name": "ASRI API",
-        "version": "2.2.0",
+        "version": "2.3.0",
         "description": "Aggregated Systemic Risk Index",
         "canonical_base": "https://asri.dissensus.ai/api",
         "legacy_base": "https://api.dissensus.ai",
@@ -104,7 +118,7 @@ def handle_health():
     """Health check endpoint."""
     return json_response({
         "status": "healthy",
-        "version": "2.2.0",
+        "version": "2.3.0",
         "timestamp": datetime.utcnow().isoformat(),
         "runtime": "cloudflare-python-workers",
         "methodology_profile": "paper_canon",
@@ -131,23 +145,24 @@ async def handle_current(env):
                 "contagion_risk": float(row["contagion_risk"]),
                 "arbitrage_opacity": float(row["arbitrage_opacity"]),
             }
-            asri = compute_asri(sub_indices)
-            # Compute rolling average from reconciled values to avoid stale DB aggregates.
+            asri = served_asri(row, sub_indices)
+            # Compute rolling average from served values to avoid stale DB aggregates.
             avg_result = await env.DB.prepare(
-                "SELECT stablecoin_risk, defi_liquidity_risk, contagion_risk, arbitrage_opacity FROM asri_daily ORDER BY date DESC LIMIT 30"
+                "SELECT asri, methodology_profile, stablecoin_risk, defi_liquidity_risk, contagion_risk, arbitrage_opacity FROM asri_daily ORDER BY date DESC LIMIT 30"
             ).all()
             avg_rows = avg_result.results.to_py() if hasattr(avg_result.results, "to_py") else list(avg_result.results)
             if avg_rows:
                 avg_values = []
                 for avg_row in avg_rows:
                     avg_values.append(
-                        compute_asri(
+                        served_asri(
+                            avg_row,
                             {
                                 "stablecoin_risk": float(avg_row["stablecoin_risk"]),
                                 "defi_liquidity_risk": float(avg_row["defi_liquidity_risk"]),
                                 "contagion_risk": float(avg_row["contagion_risk"]),
                                 "arbitrage_opacity": float(avg_row["arbitrage_opacity"]),
-                            }
+                            },
                         )
                     )
                 asri_30d_avg = round(sum(avg_values) / len(avg_values), 1)
@@ -160,7 +175,8 @@ async def handle_current(env):
             profile = row.get("methodology_profile") or "paper_canon"
             return json_response({
                 "timestamp": now,
-                # Deterministic aggregation enforces equation consistency at read time.
+                # Stored value for canon rows, read-time recomposition otherwise
+                # (see served_asri / DATA_PROVENANCE.md).
                 "asri": asri,
                 "asri_30d_avg": asri_30d_avg,
                 "trend": trend,
@@ -211,7 +227,7 @@ async def handle_timeseries(env, start: str, end: str, series: str = "canon"):
             }
             data.append({
                 "date": row["date"],
-                "asri": compute_asri(sub_indices),
+                "asri": served_asri(row, sub_indices),
                 "sub_indices": sub_indices,
             })
 
@@ -385,7 +401,7 @@ def handle_docs():
         "openapi": "3.0.0",
         "info": {
             "title": "ASRI API",
-            "version": "2.2.0",
+            "version": "2.3.0",
             "description": "Aggregated Systemic Risk Index - Unified crypto/DeFi systemic risk monitoring",
         },
         "paths": {
