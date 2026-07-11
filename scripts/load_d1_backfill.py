@@ -92,24 +92,31 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Additively load ASRI parquet into live D1")
     ap.add_argument("parquet", type=Path)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--table", default="asri_daily",
+                    help="target D1 table (default asri_daily; asri_daily_open for the full-recompute series)")
+    ap.add_argument("--profile", default="open_pipeline_continuation",
+                    help="methodology_profile written on inserted rows")
     args = ap.parse_args()
 
     df = pd.read_parquet(args.parquet).sort_index()
     d1 = D1(load_api_key())
 
-    state = d1.query("SELECT MAX(date) AS latest, COUNT(*) AS n FROM asri_daily")
+    state = d1.query(f"SELECT MAX(date) AS latest, COUNT(*) AS n FROM {args.table}")
     latest, n = (state["result"][0]["results"][0][k] for k in ("latest", "n"))
-    print(f"D1 before: {n} rows, latest {latest}")
+    print(f"D1 {args.table} before: {n} rows, latest {latest}")
 
-    new = df[df.index > pd.Timestamp(latest)]
+    # Empty table -> load the whole parquet; otherwise append-only past max(date).
+    new = df if latest is None else df[df.index > pd.Timestamp(latest)]
     if new.empty:
         print("Nothing to load: parquet has no rows after D1 latest.")
         return
     print(f"Loading {len(new)} rows: {new.index.min().date()} .. {new.index.max().date()}")
 
     # Trailing stored-asri context for the 30d average.
-    tail = d1.query("SELECT asri FROM asri_daily ORDER BY date DESC LIMIT 29")
-    window = [r["asri"] for r in tail["result"][0]["results"]][::-1]
+    window: list[float] = []
+    if latest is not None:
+        tail = d1.query(f"SELECT asri FROM {args.table} ORDER BY date DESC LIMIT 29")
+        window = [r["asri"] for r in tail["result"][0]["results"]][::-1]
 
     rows = []
     for date, r in new.iterrows():
@@ -133,20 +140,20 @@ def main() -> None:
     for i in range(0, len(rows), BATCH):
         chunk = rows[i:i + BATCH]
         values = ",".join(
-            f"('{d}',{a},{av},'{t}','{al}',{s},{de},{c},{ar})"
+            f"('{d}',{a},{av},'{t}','{al}',{s},{de},{c},{ar},'{args.profile}')"
             for d, a, av, t, al, s, de, c, ar in chunk
         )
-        sql = ("INSERT OR IGNORE INTO asri_daily (date, asri, asri_30d_avg, trend, "
+        sql = (f"INSERT OR IGNORE INTO {args.table} (date, asri, asri_30d_avg, trend, "
                "alert_level, stablecoin_risk, defi_liquidity_risk, contagion_risk, "
-               "arbitrage_opacity) VALUES " + values)
+               "arbitrage_opacity, methodology_profile) VALUES " + values)
         res = d1.query(sql)
         changes = res["result"][0]["meta"].get("changes", 0)
         inserted += changes
         print(f"  batch {i // BATCH + 1}: {changes} inserted")
 
-    state = d1.query("SELECT MAX(date) AS latest, COUNT(*) AS n FROM asri_daily")
+    state = d1.query(f"SELECT MAX(date) AS latest, COUNT(*) AS n FROM {args.table}")
     latest, n = (state["result"][0]["results"][0][k] for k in ("latest", "n"))
-    print(f"D1 after: {n} rows, latest {latest} ({inserted} inserted)")
+    print(f"D1 {args.table} after: {n} rows, latest {latest} ({inserted} inserted)")
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ Keeps https://asri.dissensus.ai / https://api.dissensus.ai current. Written
 
 | Piece | What | Where |
 |---|---|---|
-| Data store | Cloudflare D1 `asri-db` (`f8c08c15-a596-4d7f-8c00-0f7592da26f4`), table `asri_daily`, one row per day | Cloudflare account `917877c0…` |
+| Data store | Cloudflare D1 `asri-db` (`f8c08c15-a596-4d7f-8c00-0f7592da26f4`): `asri_daily` (canon + continuation; `methodology_profile` column says which regime each row is) and `asri_daily_open` (full 2021→present recompute under the current methodology, profile `open_pipeline_full`, served via `?series=open_full`) | Cloudflare account `917877c0…` |
 | API | Python Worker `asri-api` (`workers/src/main.py`), routes `api.dissensus.ai/*` and `asri.dissensus.ai/api/*`; recomputes ASRI + 30d avg from stored sub-indices at read time | Cloudflare Workers |
 | Dashboard | Vite/React app (`frontend/`), fetches `/asri/current` + `/asri/timeseries` at page load — it needs **no redeploy** when data updates | Cloudflare (asri.dissensus.ai) |
 | Generator | `scripts/generate_asri_series.py` → `ASRIBacktester` (`src/asri/backtest/`), live DeFiLlama + FRED inputs, frozen universe snapshot | this repo, `.venv` (py3.12 — 3.14 segfaults pandas) |
@@ -34,7 +34,9 @@ It: reads D1 `max(date)` → extends `data/peg_history.csv` additively
 (`extend_peg_history.py`) → runs the committed generator for exactly the
 missing window under the pinned universe snapshot (`ASRI_SNAPSHOT_AS_OF=2026-07-11`)
 → loads rows with `INSERT OR IGNORE` (`load_d1_backfill.py`; frozen rows can
-never be overwritten) → appends an audit line per row to
+never be overwritten) into BOTH `asri_daily` (profile
+`open_pipeline_continuation`) and `asri_daily_open` (profile
+`open_pipeline_full`) → appends an audit line per row to
 `results/data/asri_live_appends.csv` → verifies the live API serves the new
 date. Exits 0 doing nothing when already current; a multi-day gap (machine off)
 is filled in one run.
@@ -65,8 +67,16 @@ These differ in level. Overlap week 2026-01-08..15, fixed pipeline minus
 frozen: **ASRI +10.3** (SCR +24.8, DeFi +10.9, Contagion −12.8, Arb +16.4).
 The step at 2026-01-16 on the dashboard chart is therefore a *methodology
 regime change*, not a market event. Rescaling either side to hide it would
-misrepresent published numbers — don't. If it needs explaining on the
-dashboard, add an annotation in the frontend.
+misrepresent published numbers — don't. Since 2026-07-11 the dashboard
+annotates the seam (amber "Methodology change" marker + provenance note under
+the chart) and offers a "Full recompute" toggle: the alternate
+`asri_daily_open` series (2021→present, single methodology, universe pinned
+2026-07-11; record = committed `results/data/asri_open_full_20260711.parquet`,
+2017 rows; crisis sanity: Terra/Celsius/FTX/SVB all spike +18–20 over the calm
+baseline, Terra now the max at 53.4 — the peg fix sees what canon missed). The
+frontend falls back to the bundled static snapshot
+(`frontend/public/data/asri_open_full_20260711.json`) whenever the deployed
+worker doesn't yet support `?series=open_full`.
 
 ## Pinned universe & known fragilities
 
@@ -97,7 +107,8 @@ dashboard, add an annotation in the frontend.
   `asri-dashboard`), NOT git-connected — pushing to GitHub does not deploy.
   From `frontend/`: `npm run build`, then
   `wrangler pages deploy dist --project-name=asri-dashboard`
-  (credentials: `~/.env.cloudflare`).
+  (credentials: `~/.env.cloudflare`). For a review build without touching
+  production, add `--branch=preview` → https://preview.asri-dashboard.pages.dev.
 - FRED publishes T+1 business day; weekend/holiday runs reuse the last
   observation (same closest-at-or-before rule as the paper pipeline).
 - If DeFiLlama TVL/stablecoin/coins endpoints break or paywall, the generator

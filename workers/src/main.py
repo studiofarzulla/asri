@@ -82,7 +82,7 @@ def handle_root():
     """Root endpoint."""
     return json_response({
         "name": "ASRI API",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "description": "Aggregated Systemic Risk Index",
         "canonical_base": "https://asri.dissensus.ai/api",
         "legacy_base": "https://api.dissensus.ai",
@@ -104,7 +104,7 @@ def handle_health():
     """Health check endpoint."""
     return json_response({
         "status": "healthy",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "timestamp": datetime.utcnow().isoformat(),
         "runtime": "cloudflare-python-workers",
         "methodology_profile": "paper_canon",
@@ -155,6 +155,9 @@ async def handle_current(env):
                 asri_30d_avg = asri
             trend = row["trend"] or get_trend(asri, asri_30d_avg)
             alert_level = get_alert_level(asri)
+            # Profile of the row actually served (canon rows end 2026-01-15;
+            # later rows are the open-pipeline continuation) -- not a constant.
+            profile = row.get("methodology_profile") or "paper_canon"
             return json_response({
                 "timestamp": now,
                 # Deterministic aggregation enforces equation consistency at read time.
@@ -164,7 +167,7 @@ async def handle_current(env):
                 "sub_indices": sub_indices,
                 "alert_level": alert_level,
                 "last_update": row["date"],
-                "methodology_profile": "paper_canon",
+                "methodology_profile": profile,
             })
     except Exception as e:
         return json_response({"error": f"Database error: {str(e)}"}, status=500)
@@ -182,12 +185,18 @@ async def handle_current(env):
     })
 
 
-async def handle_timeseries(env, start: str, end: str):
-    """Get historical ASRI time series from D1."""
+async def handle_timeseries(env, start: str, end: str, series: str = "canon"):
+    """Get historical ASRI time series from D1.
+
+    series="canon" (default): the published frozen series to 2026-01-15 plus
+    the open-pipeline daily continuation. series="open_full": the alternate
+    single-methodology recompute of the whole history (asri_daily_open).
+    """
+    table = "asri_daily_open" if series == "open_full" else "asri_daily"
     try:
         # Query D1 for date range
         result = await env.DB.prepare(
-            "SELECT * FROM asri_daily WHERE date >= ? AND date <= ? ORDER BY date ASC"
+            f"SELECT * FROM {table} WHERE date >= ? AND date <= ? ORDER BY date ASC"
         ).bind(start, end).all()
 
         rows = result.results.to_py() if hasattr(result.results, 'to_py') else list(result.results)
@@ -206,6 +215,12 @@ async def handle_timeseries(env, start: str, end: str):
                 "sub_indices": sub_indices,
             })
 
+        if series == "open_full":
+            meta_profile = "open_pipeline_full"
+            boundary = None
+        else:
+            meta_profile = "paper_canon (<= 2026-01-15) + open_pipeline_continuation (>= 2026-01-16)"
+            boundary = "2026-01-16"
         return json_response({
             "data": data,
             "metadata": {
@@ -213,7 +228,9 @@ async def handle_timeseries(env, start: str, end: str):
                 "frequency": "daily",
                 "start": start,
                 "end": end,
-                "methodology_profile": "paper_canon",
+                "series": "open_pipeline_full" if series == "open_full" else "canon_plus_continuation",
+                "methodology_profile": meta_profile,
+                "profile_boundary": boundary,
             },
         })
     except Exception as e:
@@ -368,14 +385,14 @@ def handle_docs():
         "openapi": "3.0.0",
         "info": {
             "title": "ASRI API",
-            "version": "2.1.0",
+            "version": "2.2.0",
             "description": "Aggregated Systemic Risk Index - Unified crypto/DeFi systemic risk monitoring",
         },
         "paths": {
             "/": {"get": {"summary": "Root endpoint", "description": "Returns API info and available endpoints"}},
             "/health": {"get": {"summary": "Health check", "description": "Returns service health status"}},
             "/asri/current": {"get": {"summary": "Current ASRI", "description": "Returns current ASRI value and sub-indices"}},
-            "/asri/timeseries": {"get": {"summary": "Historical data", "description": "Returns ASRI time series between dates", "parameters": ["start", "end"]}},
+            "/asri/timeseries": {"get": {"summary": "Historical data", "description": "Returns ASRI time series between dates; series=open_full selects the single-methodology full recompute", "parameters": ["start", "end", "series"]}},
             "/asri/methodology": {"get": {"summary": "Methodology", "description": "Returns ASRI construction methodology"}},
             "/asri/regime": {"get": {"summary": "Regime classification", "description": "Returns current market regime"}},
             "/asri/validation": {"get": {"summary": "Validation results", "description": "Returns statistical validation tests"}},
@@ -438,7 +455,10 @@ async def on_fetch(request, env):
         # Default to tomorrow (UTC) so an omitted end never truncates the
         # series (a fixed 2026-12-31 default would have expired 2027-01-01).
         end = query_params.get("end") or (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
-        return await handle_timeseries(env, start, end)
+        series = query_params.get("series", "canon")
+        if series not in ("canon", "open_full"):
+            return json_response({"error": "series must be 'canon' or 'open_full'"}, status=400)
+        return await handle_timeseries(env, start, end, series)
     elif path == "/asri/methodology":
         return handle_methodology()
     elif path == "/asri/regime":

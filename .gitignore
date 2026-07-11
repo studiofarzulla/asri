@@ -81,6 +81,9 @@ data/cache/
 # (see RUNBOOK_DASHBOARD.md).
 !results/data/asri_backfill_2026H1.parquet
 !results/data/asri_live_appends.csv
+# Full 2021->present recompute under the current methodology: the record of
+# what was loaded into D1 asri_daily_open (dashboard "Full recompute" series).
+!results/data/asri_open_full_20260711.parquet
 # Real peg-history input (drives the Bug-3 peg-fix sensitivity).
 !data/peg_history.csv
 # Frozen universe snapshots are local, large and regenerable -- keep the dumps

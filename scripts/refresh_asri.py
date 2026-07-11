@@ -79,6 +79,10 @@ def main() -> int:
          "--start", start, "--end", end, "--out", str(TMP_PARQUET)],
         env={"ASRI_SNAPSHOT_AS_OF": PINNED_UNIVERSE})
     run([PYTHON, "scripts/load_d1_backfill.py", str(TMP_PARQUET)])
+    # Same rows also extend the alternate single-methodology series (identical
+    # pipeline for new dates; the loader's own max(date) guard keeps it safe).
+    run([PYTHON, "scripts/load_d1_backfill.py", str(TMP_PARQUET),
+         "--table", "asri_daily_open", "--profile", "open_pipeline_full"])
 
     # Audit trail of every live-appended row.
     df = pd.read_parquet(TMP_PARQUET).sort_index()
