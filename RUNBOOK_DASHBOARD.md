@@ -79,9 +79,19 @@ dashboard, add an annotation in the frontend.
   went behind DeFiLlama's paid API ~mid-2026.** This file holds the endpoint's
   last public output (Wayback, 2024-12-22, 63 bridges) and is effectively
   permanent. Only feeds `bridge_exploit_frequency` (2.5% of ASRI).
-- Frontend queries `…/timeseries?start=2021-01-01&end=2026-12-31`
-  (`frontend/src/components/ASRIDashboard.tsx`). **Rots 2027-01-01** — bump or
-  make dynamic before then, then rebuild/redeploy the frontend.
+- Frontend timeseries end date is computed at fetch time (tomorrow UTC,
+  `frontend/src/components/ASRIDashboard.tsx`) — fixed 2026-07-11; it was a
+  hardcoded `end=2026-12-31` that would have truncated the chart from
+  2027-01-01. The fix is in source but the LIVE bundle predates it; it goes
+  live on the next frontend deploy. Note the deployed Worker also defaults
+  `end` to 2026-12-31 when the param is omitted (`workers` — but the live
+  worker is v2.1.0, NEWER than this repo's `workers/src/main.py` v2.0.0; do
+  NOT redeploy the worker from this repo without first pulling the live code).
+- Frontend deploys are **direct-upload Cloudflare Pages** (project
+  `asri-dashboard`), NOT git-connected — pushing to GitHub does not deploy.
+  From `frontend/`: `npm run build`, then
+  `wrangler pages deploy dist --project-name=asri-dashboard`
+  (credentials: `~/.env.cloudflare`).
 - FRED publishes T+1 business day; weekend/holiday runs reuse the last
   observation (same closest-at-or-before rule as the paper pipeline).
 - If DeFiLlama TVL/stablecoin/coins endpoints break or paywall, the generator

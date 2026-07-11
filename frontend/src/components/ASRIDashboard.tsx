@@ -320,9 +320,12 @@ export default function ASRIDashboard() {
     setCoreError(null);
 
     try {
+      // Tomorrow (UTC) so the query never excludes the newest row; a fixed
+      // end date here once silently truncated the series at year-end.
+      const timeseriesEnd = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
       const [currentRes, timeseriesRes] = await Promise.all([
         fetch(`${API_URL}/asri/current`),
-        fetch(`${API_URL}/asri/timeseries?start=2021-01-01&end=2026-12-31`),
+        fetch(`${API_URL}/asri/timeseries?start=2021-01-01&end=${timeseriesEnd}`),
       ]);
 
       if (!currentRes.ok || !timeseriesRes.ok) {
