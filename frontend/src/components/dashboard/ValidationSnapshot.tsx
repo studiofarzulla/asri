@@ -41,26 +41,27 @@ export function ValidationSnapshot({
             </p>
           </div>
           <div className="rounded-lg border border-zinc-700/50 bg-gradient-to-b from-zinc-800/55 to-zinc-900/55 px-3 py-2">
-            <p className="text-[11px] text-zinc-400">Detection Rate</p>
+            <p className="text-[11px] text-zinc-400">Detection (fixed τ=50)</p>
             <p className="text-sm font-medium text-zinc-200">
-              {validation.event_study.summary?.detection_rate !== undefined
-                ? `${(validation.event_study.summary.detection_rate * 100).toFixed(0)}%`
+              {validation.event_study.summary?.fixed_threshold_detection_rate !== undefined
+                ? `${(validation.event_study.summary.fixed_threshold_detection_rate * 100).toFixed(0)}% (3/4)`
                 : "n/a"}
             </p>
           </div>
           <div className="rounded-lg border border-zinc-700/50 bg-gradient-to-b from-zinc-800/55 to-zinc-900/55 px-3 py-2">
-            <p className="text-[11px] text-zinc-400">Avg Lead</p>
+            <p className="text-[11px] text-zinc-400">Detection (walk-forward)</p>
             <p className="text-sm font-medium text-zinc-200">
-              {validation.event_study.summary?.avg_lead_time !== undefined
-                ? `${validation.event_study.summary.avg_lead_time.toFixed(1)}d`
+              {validation.event_study.summary?.walk_forward_detection_rate !== undefined
+                ? `${(validation.event_study.summary.walk_forward_detection_rate * 100).toFixed(0)}%`
                 : "n/a"}
             </p>
           </div>
           <div className="rounded-lg border border-zinc-700/50 bg-gradient-to-b from-zinc-800/55 to-zinc-900/55 px-3 py-2">
-            <p className="text-[11px] text-zinc-400">Avg CAS</p>
+            <p className="text-[11px] text-zinc-400">Avg Lead (fixed / WF)</p>
             <p className="text-sm font-medium text-zinc-200">
-              {validation.event_study.summary?.avg_cas !== undefined
-                ? validation.event_study.summary.avg_cas.toFixed(1)
+              {validation.event_study.summary?.fixed_threshold_avg_lead !== undefined &&
+              validation.event_study.summary?.walk_forward_avg_lead !== undefined
+                ? `${validation.event_study.summary.fixed_threshold_avg_lead.toFixed(1)}d / ${validation.event_study.summary.walk_forward_avg_lead.toFixed(1)}d`
                 : "n/a"}
             </p>
           </div>

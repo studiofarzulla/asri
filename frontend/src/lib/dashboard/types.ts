@@ -28,6 +28,8 @@ export interface TimeseriesMetadata {
   start?: string;
   end?: string;
   methodology_profile?: string;
+  series?: string;
+  profile_boundary?: string | null;
 }
 
 export interface TimeseriesResponse {
@@ -51,9 +53,10 @@ export interface ValidationResponse {
   stationarity: Record<string, unknown>;
   event_study: {
     summary?: {
-      detection_rate?: number;
-      avg_lead_time?: number;
-      avg_cas?: number;
+      fixed_threshold_detection_rate?: number;
+      fixed_threshold_avg_lead?: number;
+      walk_forward_detection_rate?: number;
+      walk_forward_avg_lead?: number;
     };
     methodology_profile?: string;
     [key: string]: unknown;

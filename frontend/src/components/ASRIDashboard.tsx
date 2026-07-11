@@ -42,7 +42,7 @@ import { ValidationSnapshot } from "./dashboard/ValidationSnapshot";
 import { RegimeRibbon } from "./dashboard/RegimeRibbon";
 import { BenchmarkHeadline } from "./dashboard/BenchmarkHeadline";
 import { RiskGauge } from "./dashboard/RiskGauge";
-import { riskHex, riskSurface } from "../lib/dashboard/risk";
+import { riskHex, riskSurface, RISK_TIERS } from "../lib/dashboard/risk";
 import { CRISIS_EVENTS, NON_SYSTEMIC_EVENTS } from "../lib/dashboard/events";
 import {
   computeContributionRows,
@@ -116,6 +116,17 @@ const overlayColors: Record<SubIndexKey, string> = {
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// First date computed by the open pipeline; everything before is the frozen
+// dataset of record from the paper. Levels are NOT comparable across this
+// boundary — the step is a methodology change, not a market event.
+const SEAM_DATE = "2026-01-16";
+const ZENODO_URL = "https://doi.org/10.5281/zenodo.17918238";
+
+type SeriesMode = "canon" | "open_full";
+// Static snapshot of the full recompute, bundled with the site so the toggle
+// works even before the API's series=open_full param is deployed.
+const OPEN_FULL_BUNDLE = "/data/asri_open_full_20260711.json";
+
 // Crisis-window membership (the four systemic events only). Used for chart shading.
 const isInCrisisWindow = (date: string): boolean => {
   const t = new Date(`${date}T00:00:00Z`).getTime();
@@ -139,8 +150,12 @@ const buildShadeData = (
       : { time: point.date as Time },
   );
 
-// Systemic crisis markers + the Bybit non-systemic true-negative marker.
-const buildEventMarkers = (points: TimeseriesPoint[]): SeriesMarker<Time>[] => {
+// Systemic crisis markers + the Bybit non-systemic true-negative marker,
+// plus (canon mode only) the methodology-change marker at the seam.
+const buildEventMarkers = (
+  points: TimeseriesPoint[],
+  includeSeamMarker: boolean,
+): SeriesMarker<Time>[] => {
   if (points.length === 0) {
     return [];
   }
@@ -172,7 +187,20 @@ const buildEventMarkers = (points: TimeseriesPoint[]): SeriesMarker<Time>[] => {
     text: `${event.name} (non-systemic)`,
   }));
 
-  return [...systemic, ...nonSystemic].sort((a, b) =>
+  const seam: SeriesMarker<Time>[] =
+    includeSeamMarker && SEAM_DATE >= firstDate && SEAM_DATE <= lastDate
+      ? [
+          {
+            time: SEAM_DATE as Time,
+            position: "aboveBar",
+            shape: "arrowDown",
+            color: "#e0a458",
+            text: "Methodology change",
+          },
+        ]
+      : [];
+
+  return [...systemic, ...nonSystemic, ...seam].sort((a, b) =>
     String(a.time).localeCompare(String(b.time)),
   );
 };
@@ -215,6 +243,10 @@ export default function ASRIDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [selectedRange, setSelectedRange] = useState<TimeRangeKey>("1Y");
+  const [seriesMode, setSeriesMode] = useState<SeriesMode>("canon");
+  const [openFullSeries, setOpenFullSeries] = useState<TimeseriesPoint[] | null>(null);
+  const [openFullSource, setOpenFullSource] = useState<"api" | "bundled" | null>(null);
+  const [openFullError, setOpenFullError] = useState<string | null>(null);
   const [overlayVisibility, setOverlayVisibility] = useState<Record<SubIndexKey, boolean>>({
     stablecoin_risk: false,
     defi_liquidity_risk: false,
@@ -240,9 +272,12 @@ export default function ASRIDashboard() {
   const avg30dRef = useRef<number>(0);
   const lastDomainRef = useRef<string>("");
 
+  const activeTimeseries =
+    seriesMode === "open_full" && openFullSeries ? openFullSeries : timeseries;
+
   const sortedTimeseries = useMemo(() => {
-    return [...timeseries].sort((a, b) => a.date.localeCompare(b.date));
-  }, [timeseries]);
+    return [...activeTimeseries].sort((a, b) => a.date.localeCompare(b.date));
+  }, [activeTimeseries]);
 
   const selectedReplayEvent = useMemo(
     () => CRISIS_EVENTS.find((event) => event.id === selectedReplayEventId) ?? CRISIS_EVENTS[0],
@@ -378,6 +413,50 @@ export default function ASRIDashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Lazy-load the alternate full-recompute series. Prefer the live API
+  // (series=open_full); if the deployed worker predates that param it will
+  // echo the canon series without the marker, so fall back to the bundled
+  // static snapshot rather than silently showing the wrong data.
+  const loadOpenFullSeries = async () => {
+    if (openFullSeries) return;
+    setOpenFullError(null);
+    try {
+      const end = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+      const res = await fetch(
+        `${API_URL}/asri/timeseries?start=2021-01-01&end=${end}&series=open_full`,
+      );
+      if (res.ok) {
+        const body: TimeseriesResponse = await res.json();
+        if (body.metadata?.series === "open_pipeline_full") {
+          setOpenFullSeries(body.data);
+          setOpenFullSource("api");
+          return;
+        }
+      }
+    } catch {
+      // fall through to the bundled snapshot
+    }
+    try {
+      const bundled = await fetch(OPEN_FULL_BUNDLE);
+      if (!bundled.ok) throw new Error(`${bundled.status}`);
+      const body: TimeseriesResponse = await bundled.json();
+      setOpenFullSeries(body.data);
+      setOpenFullSource("bundled");
+    } catch (error) {
+      setOpenFullError(error instanceof Error ? error.message : "unavailable");
+      setSeriesMode("canon");
+    }
+  };
+
+  const handleSeriesModeChange = (mode: SeriesMode) => {
+    setSeriesMode(mode);
+    setFocusReplay(false);
+    setReplayPlaying(false);
+    if (mode === "open_full") {
+      void loadOpenFullSeries();
+    }
+  };
 
   useEffect(() => {
     if (replayWindowTimeseries.length === 0) {
@@ -524,7 +603,7 @@ export default function ASRIDashboard() {
       chartTimeseries.map((point) => ({ time: point.date as Time, value: point.asri })),
     );
     shadeSeries.setData(buildShadeData(chartTimeseries));
-    markersRef.current?.setMarkers(buildEventMarkers(chartTimeseries));
+    markersRef.current?.setMarkers(buildEventMarkers(chartTimeseries, seriesMode === "canon"));
 
     (Object.keys(overlayVisibility) as SubIndexKey[]).forEach((key) => {
       const existing = overlaySeriesRef.current[key];
@@ -558,7 +637,7 @@ export default function ASRIDashboard() {
       chart.timeScale().fitContent();
       lastDomainRef.current = domainKey;
     }
-  }, [chartTimeseries, overlayVisibility, current?.asri_30d_avg, chartReady]);
+  }, [chartTimeseries, overlayVisibility, current?.asri_30d_avg, chartReady, seriesMode]);
 
   const handleRangeChange = (range: TimeRangeKey) => {
     setSelectedRange(range);
@@ -708,15 +787,32 @@ export default function ASRIDashboard() {
         )}
 
         {current && (
-          <p className="flex items-center gap-2 px-1 text-xs text-zinc-500">
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full"
-              style={{ background: riskHex(current.asri) }}
-              aria-hidden
-            />
-            Systemic risk level as of{" "}
-            {new Date(current.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 text-xs text-zinc-500">
+            <p className="flex items-center gap-2">
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: riskHex(current.asri) }}
+                aria-hidden
+              />
+              Data through {formatDate(current.last_update)} · refreshed daily
+            </p>
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+              {RISK_TIERS.map((tier, index) => {
+                const next = RISK_TIERS[index + 1];
+                const range = next ? `${tier.floor}–${next.floor}` : `≥${tier.floor}`;
+                return (
+                  <span key={tier.tier} className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: tier.hex }}
+                      aria-hidden
+                    />
+                    {tier.label} {range}
+                  </span>
+                );
+              })}
+            </p>
+          </div>
         )}
 
         <BenchmarkHeadline />
@@ -737,8 +833,7 @@ export default function ASRIDashboard() {
             <div className="flex items-center gap-2 text-zinc-400">
               <Shield className="h-3.5 w-3.5 text-burgundy-300/80" />
               <span>
-                Last update:{" "}
-                {current ? new Date(current.last_update).toLocaleString("en-GB") : "n/a"}
+                Data through {current ? formatDate(current.last_update) : "n/a"} · next refresh ~07:30 London
               </span>
             </div>
           </div>
@@ -758,7 +853,35 @@ export default function ASRIDashboard() {
                   Crisis annotations, overlays, and interactive hover telemetry
                 </p>
               </div>
-              <RangeControls selectedRange={selectedRange} onChange={handleRangeChange} />
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-0.5 rounded-lg border border-zinc-700/60 bg-zinc-900/70 p-0.5 text-[11px] font-mono">
+                  <button
+                    type="button"
+                    onClick={() => handleSeriesModeChange("canon")}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      seriesMode === "canon"
+                        ? "bg-zinc-800/90 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                    title="Published dataset of record to 15 Jan 2026, then the live open-pipeline continuation"
+                  >
+                    Published + live
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSeriesModeChange("open_full")}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      seriesMode === "open_full"
+                        ? "bg-zinc-800/90 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                    title="Entire history recomputed with the current methodology (single pipeline)"
+                  >
+                    Full recompute
+                  </button>
+                </div>
+                <RangeControls selectedRange={selectedRange} onChange={handleRangeChange} />
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {(Object.keys(subIndexInfo) as SubIndexKey[]).map((key) => (
@@ -794,6 +917,12 @@ export default function ASRIDashboard() {
                 <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#4ade80]" />
                 Non-systemic (Bybit, true negative)
               </span>
+              {seriesMode === "canon" && (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-0 w-0 border-x-[5px] border-x-transparent border-t-[7px] border-t-[#e0a458]" />
+                  Methodology change (16 Jan 2026)
+                </span>
+              )}
             </div>
           </div>
 
@@ -815,6 +944,39 @@ export default function ASRIDashboard() {
               </div>
             )}
           </div>
+
+          <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+            {seriesMode === "canon" ? (
+              <>
+                Through <span className="text-zinc-300">15 Jan 2026</span> this series is the frozen
+                dataset of record behind the paper&apos;s results (
+                <a
+                  href={ZENODO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-burgundy-300 hover:text-burgundy-200 transition-colors"
+                >
+                  Zenodo
+                </a>
+                ). From <span className="text-zinc-300">16 Jan 2026</span> values are computed daily by
+                the current open-source pipeline. Levels are not directly comparable across the
+                boundary — the step there is a methodology change, not a market event.
+              </>
+            ) : (
+              <>
+                Alternate series: the entire 2021–present history recomputed under the current
+                open-pipeline methodology (protocol universe pinned 11 Jul 2026
+                {openFullSource === "bundled" ? "; served from a static snapshot" : ""}). Levels
+                differ from the published dataset of record, which remains available under
+                &ldquo;Published + live&rdquo;.
+              </>
+            )}
+          </p>
+          {openFullError && (
+            <p className="mt-2 text-[11px] text-amber-400">
+              Full-recompute series unavailable ({openFullError}); showing the published series.
+            </p>
+          )}
         </section>
 
         <section className="asri-glass p-6">
@@ -1021,7 +1183,40 @@ export default function ASRIDashboard() {
 
         <section className="asri-glass p-6">
           <h2 className="text-sm font-semibold text-zinc-100 mb-4 font-mono tracking-tight">Methodology and Resources</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-xs text-zinc-400 leading-relaxed">
+            <div className="rounded-xl border border-zinc-700/45 bg-zinc-900/40 p-4">
+              <h3 className="text-zinc-200 font-medium mb-2 font-mono text-[11px] uppercase tracking-wider">Construction</h3>
+              <p>
+                ASRI is a weighted composite of four sub-indices, each an aggregate of normalised
+                0–100 component signals: Stablecoin Risk (<span className="text-zinc-200">30%</span>),
+                DeFi Liquidity (<span className="text-zinc-200">25%</span>), Contagion
+                (<span className="text-zinc-200">25%</span>), and Regulatory Opacity
+                (<span className="text-zinc-200">20%</span>). The composite is the weighted sum,
+                recomputed from stored sub-indices at read time.
+              </p>
+            </div>
+            <div className="rounded-xl border border-zinc-700/45 bg-zinc-900/40 p-4">
+              <h3 className="text-zinc-200 font-medium mb-2 font-mono text-[11px] uppercase tracking-wider">Data and cadence</h3>
+              <p>
+                Inputs: DeFiLlama (chain TVL, protocol universe, stablecoin supplies and prices) and
+                FRED (10Y Treasury, VIX, 2s10s spread, S&amp;P 500), plus a version-controlled
+                stablecoin peg-history dataset. The series is extended daily at ~07:30 London time
+                from public endpoints; every served value traces to committed code.
+              </p>
+            </div>
+            <div className="rounded-xl border border-zinc-700/45 bg-zinc-900/40 p-4">
+              <h3 className="text-zinc-200 font-medium mb-2 font-mono text-[11px] uppercase tracking-wider">Data regimes</h3>
+              <p>
+                Through 15 Jan 2026 the default chart serves the frozen dataset of record behind the
+                paper&apos;s results; from 16 Jan 2026 values come from the open-source pipeline. The
+                levels differ across that boundary. The &ldquo;Full recompute&rdquo; toggle instead
+                shows the whole history under the current methodology as one comparable series.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <a
               href="https://arxiv.org/abs/2602.03874"
               target="_blank"
@@ -1063,6 +1258,20 @@ export default function ASRIDashboard() {
               </div>
               <ExternalLink className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
             </a>
+
+            <a
+              href={ZENODO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="asri-glass-interactive flex items-center gap-3 px-4 py-3 bg-zinc-900/60 rounded-xl border border-zinc-700/45 hover:border-zinc-500/70 hover:bg-zinc-900 group"
+            >
+              <Database className="h-5 w-5 text-zinc-500 group-hover:text-burgundy-300 transition-colors" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100">Zenodo Archive</p>
+                <p className="text-xs text-zinc-500 truncate">10.5281/zenodo.17918238</p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
+            </a>
           </div>
         </section>
       </main>
@@ -1083,7 +1292,7 @@ export default function ASRIDashboard() {
             <div className="flex items-center gap-4">
               {current && (
                 <span className="text-zinc-500">
-                  Last updated: {new Date(current.last_update).toLocaleString("en-GB")}
+                  Data through {formatDate(current.last_update)}
                 </span>
               )}
               <span className="text-zinc-700">v2.2.0</span>

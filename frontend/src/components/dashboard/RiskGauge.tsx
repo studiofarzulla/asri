@@ -275,7 +275,14 @@ export function RiskGauge({ value, avg30d, trend, alertLevel, sparkline, lastUpd
                 <span className="asri-ping absolute inline-flex h-full w-full rounded-full" style={{ background: "#34d399" }} />
                 <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#34d399" }} />
               </span>
-              <span>Updated {new Date(lastUpdate).toLocaleString("en-GB")}</span>
+              <span>
+                Data through{" "}
+                {new Date(`${lastUpdate.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
             </div>
           )}
         </div>
