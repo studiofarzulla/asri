@@ -83,10 +83,16 @@ dashboard, add an annotation in the frontend.
   `frontend/src/components/ASRIDashboard.tsx`) — fixed 2026-07-11; it was a
   hardcoded `end=2026-12-31` that would have truncated the chart from
   2027-01-01. The fix is in source but the LIVE bundle predates it; it goes
-  live on the next frontend deploy. Note the deployed Worker also defaults
-  `end` to 2026-12-31 when the param is omitted (`workers` — but the live
-  worker is v2.1.0, NEWER than this repo's `workers/src/main.py` v2.0.0; do
-  NOT redeploy the worker from this repo without first pulling the live code).
+  live on the next frontend deploy.
+- Worker source verified against live (2026-07-11): the live `asri-api`
+  script was pulled via the CF API and is byte-identical to the committed
+  `workers/src/main.py` (EOL-insensitive diff = 0; the file is CRLF) — this
+  repo IS the deployed v2.1.0 and is safe to deploy from with
+  `wrangler deploy` in `workers/`. The worker's own omitted-`end` default
+  (2026-12-31, the same year-end fuse) is fixed in source to tomorrow-UTC;
+  it goes live on the next worker deploy. A stale v2.0.0 copy that
+  previously prompted a clobber warning here lives in the OLD duplicate
+  clone at `papers/github-repos/asri`, not in this repo.
 - Frontend deploys are **direct-upload Cloudflare Pages** (project
   `asri-dashboard`), NOT git-connected — pushing to GitHub does not deploy.
   From `frontend/`: `npm run build`, then

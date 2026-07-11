@@ -5,7 +5,7 @@ Aggregated Systemic Risk Index for crypto/DeFi systemic risk monitoring
 Uses native Workers API (no FastAPI - not available in Pyodide)
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from js import Response, Headers
 
@@ -435,7 +435,9 @@ async def on_fetch(request, env):
         return await handle_current(env)
     elif path == "/asri/timeseries":
         start = query_params.get("start", "2021-01-01")
-        end = query_params.get("end", "2026-12-31")
+        # Default to tomorrow (UTC) so an omitted end never truncates the
+        # series (a fixed 2026-12-31 default would have expired 2027-01-01).
+        end = query_params.get("end") or (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
         return await handle_timeseries(env, start, end)
     elif path == "/asri/methodology":
         return handle_methodology()
