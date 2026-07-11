@@ -76,12 +76,20 @@ data/cache/
 # so the analysis scripts reproduce every headline on a fresh clone. All OTHER
 # *.parquet (regens, pegfix sensitivities, smoke outputs) stay ignored.
 !results/data/asri_history.parquet
+# Live-dashboard continuation series: the exact rows loaded into D1 for
+# 2026-01-16.., plus the append-only audit log of every later live refresh
+# (see RUNBOOK_DASHBOARD.md).
+!results/data/asri_backfill_2026H1.parquet
+!results/data/asri_live_appends.csv
 # Real peg-history input (drives the Bug-3 peg-fix sensitivity).
 !data/peg_history.csv
 # Frozen universe snapshots are local, large and regenerable -- keep the dumps
 # ignored but track the explanatory README.
 data/snapshots/*.json
 !data/snapshots/README.md
+# Exception: the bridges endpoint is paywalled since 2026; this last public
+# output (Wayback 2024-12-22) is NOT regenerable -- keep it tracked.
+!data/snapshots/bridges_2026-07-11.json
 
 # Secrets
 secrets/

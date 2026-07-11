@@ -229,12 +229,12 @@ class HistoricalDataFetcher:
             # Fetch in chunks to avoid timeout
             all_prices = []
 
-            # 2021 onwards (covers all crises)
+            # 2021 through the current year (a fixed list ending at 2024 left
+            # every 2025+ date with an empty BTC series, silently collapsing
+            # crypto_equity_correlation to its 0.3 fallback)
             chunks = [
-                (datetime(2021, 1, 1), 365),
-                (datetime(2022, 1, 1), 365),
-                (datetime(2023, 1, 1), 365),
-                (datetime(2024, 1, 1), 365),
+                (datetime(year, 1, 1), 365)
+                for year in range(2021, datetime.now().year + 1)
             ]
 
             for start_date, span in chunks:

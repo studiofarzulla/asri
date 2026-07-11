@@ -1,0 +1,10 @@
+[Unit]
+Description=ASRI dashboard daily data refresh (D1 backfill via committed pipeline)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/purrpower/Resurrexi/projects/papers/papers-official/asri/code
+ExecStart=/home/purrpower/Resurrexi/projects/papers/papers-official/asri/code/.venv/bin/python scripts/refresh_asri.py
+TimeoutStartSec=1800

@@ -40,4 +40,10 @@ frozen canonical series at `results/data/asri_history.parquet` (max 84.70 ASRI,
 that frozen parquet. See `../../DATA_PROVENANCE.md` and `../../REPRODUCIBILITY.md`.
 
 This directory is intentionally left empty in version control until a snapshot
-is dumped locally.
+is dumped locally — with one exception: `bridges_2026-07-11.json` IS committed,
+because `bridges.llama.fi/bridges` went behind DeFiLlama's paid API in 2026 and
+the file (the endpoint's last public output, Wayback capture of 2024-12-22,
+63 bridges) can no longer be regenerated. `dump_universe_snapshot.py` will
+report 0 bridges against the paywalled endpoint; keep the committed file.
+The 2026-07-11 protocols snapshot used for the live-refresh series is pinned by
+sha256 in `RUNBOOK_DASHBOARD.md`.

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the ASRI dashboard refresh daily
+
+[Timer]
+OnCalendar=*-*-* 07:30:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target
