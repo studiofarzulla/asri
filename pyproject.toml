@@ -107,6 +107,11 @@ strict = true
 warn_return_any = true
 warn_unused_ignores = true
 
+[tool.pyright]
+# scripts/ modules import each other via a sys.path insert at runtime
+# (e.g. refresh_asri.py -> load_d1_backfill.py); mirror that for the checker.
+extraPaths = ["src", "scripts"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

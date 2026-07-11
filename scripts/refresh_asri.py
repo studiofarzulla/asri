@@ -32,6 +32,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import cast
 
 import httpx
 import pandas as pd
@@ -52,7 +53,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from load_d1_backfill import D1, load_api_key  # noqa: E402
 
 
-def run(cmd: list[str], env: dict | None = None) -> None:
+def run(cmd: list[str | Path], env: dict | None = None) -> None:
     import os
     full_env = {**os.environ, **(env or {})}
     print(f"$ {' '.join(str(c) for c in cmd)}")
@@ -94,13 +95,14 @@ def main() -> int:
             w.writerow(["date", "asri", "stablecoin_risk", "defi_liquidity_risk",
                         "contagion_risk", "arbitrage_opacity", "loaded_at_utc"])
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        for date, r in df.iterrows():
+        for ts, r in df.iterrows():
+            date = cast(pd.Timestamp, ts)
             w.writerow([date.strftime("%Y-%m-%d"),
-                        round(float(r["asri"]), 2),
-                        round(float(r["stablecoin_risk"]), 2),
-                        round(float(r["defi_liquidity_risk"]), 2),
-                        round(float(r["contagion_risk"]), 2),
-                        round(float(r["arbitrage_opacity"]), 2), now])
+                        round(float(cast(float, r["asri"])), 2),
+                        round(float(cast(float, r["stablecoin_risk"])), 2),
+                        round(float(cast(float, r["defi_liquidity_risk"])), 2),
+                        round(float(cast(float, r["contagion_risk"])), 2),
+                        round(float(cast(float, r["arbitrage_opacity"])), 2), now])
     TMP_PARQUET.unlink(missing_ok=True)
 
     # Live verification.

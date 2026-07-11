@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import cast
 
 import httpx
 import pandas as pd
@@ -110,7 +111,8 @@ def main() -> None:
     if new.empty:
         print("Nothing to load: parquet has no rows after D1 latest.")
         return
-    print(f"Loading {len(new)} rows: {new.index.min().date()} .. {new.index.max().date()}")
+    first, last = cast(pd.Timestamp, new.index.min()), cast(pd.Timestamp, new.index.max())
+    print(f"Loading {len(new)} rows: {first.date()} .. {last.date()}")
 
     # Trailing stored-asri context for the 30d average.
     window: list[float] = []
@@ -119,8 +121,9 @@ def main() -> None:
         window = [r["asri"] for r in tail["result"][0]["results"]][::-1]
 
     rows = []
-    for date, r in new.iterrows():
-        subs = {k: round(float(r[k]), 1) for k in SUBS}
+    for ts, r in new.iterrows():
+        date = cast(pd.Timestamp, ts)
+        subs = {k: round(float(cast(float, r[k])), 1) for k in SUBS}
         asri = round(sum(subs[k] * w for k, w in WEIGHTS.items()), 1)
         window.append(asri)
         window[:] = window[-30:]
