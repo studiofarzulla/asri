@@ -5,7 +5,7 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17918238-blue.svg)](https://doi.org/10.5281/zenodo.17918238)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![arXiv](https://img.shields.io/badge/arXiv-2602.03874-b31b1b.svg)](https://arxiv.org/abs/2602.03874)
-[![Status](https://img.shields.io/badge/Status-arXiv_Preprint-b31b1b.svg)](https://arxiv.org/abs/2602.03874)
+[![Status](https://img.shields.io/badge/Status-Under_Review-blue.svg)](https://arxiv.org/abs/2602.03874)
 
 **Working Paper DAI-2509** | [Dissensus](https://dissensus.ai) | [Dashboard](https://asri.dissensus.ai)
 
@@ -86,13 +86,12 @@ GET /asri/methodology      # Documentation
 
 ### Data Sources
 
-| Source | Type | Status |
-|--------|------|--------|
-| DeFi Llama | TVL, volumes | Planned |
-| Token Terminal | Protocol metrics | Planned |
-| FRED | Macro indicators | Planned |
-| Messari | On-chain data | Conditional |
-| Chainalysis | Risk reports | Crawler |
+| Source | Type | Connector |
+|--------|------|-----------|
+| CoinGecko | Prices, market data (cross-market correlations) | `src/asri/ingestion/coingecko.py` |
+| DeFi Llama | TVL, stablecoin supply and peg data | `src/asri/ingestion/defillama.py` |
+| FRED | Macro indicators (Treasury, VIX, yields) | `src/asri/ingestion/fred.py` |
+| News (CryptoPanic / NewsAPI) | Regulatory news sentiment (VADER) | `src/asri/ingestion/news.py` |
 
 ## Getting Started
 
@@ -118,8 +117,8 @@ uvicorn asri.api.main:app --reload
 
 All reported numbers reproduce **deterministically** from the frozen canonical
 ASRI series `results/data/asri_history.parquet` (max **84.70** on 2022-11-08,
-mean **39.20**, 1841 rows; sha256 `f0fc1502…628a827d`; Zenodo
-`10.5281/zenodo.17918239`). This series is a **released, frozen dataset of
+mean **39.20**, 1841 rows; sha256 `f0fc1502…628a827d`; Zenodo concept
+`10.5281/zenodo.17918238`, parquet deposited from v2.0.0 onwards). This series is a **released, frozen dataset of
 record**, not a re-derived artefact: the generation pipeline's original live
 inputs and protocols/bridges universe were never archived, so the daily series is
 **not** bit-reproducible from the live ingestion pipeline. The analysis scripts

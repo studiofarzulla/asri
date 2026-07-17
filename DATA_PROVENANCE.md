@@ -22,7 +22,7 @@ results/data/asri_history.parquet
 | max ASRI        | **84.7000** on **2022-11-08** (FTX) |
 | mean ASRI       | **39.2022** |
 | min ASRI        | 25.8000 |
-| Archived at     | Zenodo DOI `10.5281/zenodo.17918239` |
+| Archived at     | Zenodo concept DOI `10.5281/zenodo.17918238` (parquet deposited from v2.0.0; earlier version records were paper-only) |
 
 **This series is treated as a frozen, released dataset — not a re-derived
 artefact.** Every headline number in the paper recomputes deterministically from
@@ -188,6 +188,6 @@ remain reproducible **only** from the frozen parquet.
 ## 5. One-line summary
 
 > The published ASRI series is a **frozen released dataset** (sha256 above; Zenodo
-> 10.5281/zenodo.17918239). All paper numbers reproduce from it deterministically.
+> concept 10.5281/zenodo.17918238). All paper numbers reproduce from it deterministically.
 > The generation pipeline is provided and corrected, but does **not** bit-reproduce
 > the series — its original live inputs and universe snapshot were never archived.
