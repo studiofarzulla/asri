@@ -11,10 +11,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 LOCAL_DIR="${1:-$PROJECT_DIR/static_site}"
 
-# Paths
-REMOTE_HOST="sudosenpai@192.168.2.49"
-REMOTE_PATH="/mnt/storage/resurrexi-io/public/asri"
-RESURREXI_IO_REPO="/home/purrpower/Resurrexi/projects/websites/resurrexi-io"
+# Paths (override via environment; defaults target the local homelab deployment)
+REMOTE_HOST="${ASRI_REMOTE_HOST:-sudosenpai@192.168.2.49}"
+REMOTE_PATH="${ASRI_REMOTE_PATH:-/mnt/storage/resurrexi-io/public/asri}"
+RESURREXI_IO_REPO="${RESURREXI_IO_REPO:-$HOME/Resurrexi/projects/websites/resurrexi-io}"
 ASRI_REPO="$PROJECT_DIR"
 
 echo "=== ASRI Deploy ==="

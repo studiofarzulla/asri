@@ -164,7 +164,13 @@ class ASRIBacktester:
     and provides database backfill functionality.
     """
 
-    # Neutral sentiment for backtesting (can't get historical news)
+    # Neutral sentiment for backtesting (can't get historical news).
+    # NB: the live ingestion pipeline defaults regulatory_sentiment to 50.0
+    # (pipeline/transform.py, pipeline/orchestrator.py). The frozen backtested
+    # series (results/data/asri_history.parquet) was generated with THIS 40.0
+    # constant, so it is the value actually embedded in every reported result;
+    # do not change it without regenerating the frozen series. The paper's
+    # component-composition documentation should match this 40.0, not 50.0.
     NEUTRAL_SENTIMENT = 40.0
 
     # Sub-index calculation weights (from transform layer)
