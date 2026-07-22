@@ -10,7 +10,7 @@ Coordinates the full data pipeline:
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import structlog
 from dotenv import load_dotenv
@@ -38,7 +38,7 @@ class ASRIOrchestrator:
 
     # Weights for converting transformed inputs to sub-index scores
     STABLECOIN_WEIGHTS = {
-        'tvl_ratio': 0.4,
+        'tvl_risk': 0.4,
         'treasury_stress': 0.3,
         'concentration_hhi': 0.2,
         'peg_volatility': 0.1,
@@ -93,11 +93,10 @@ class ASRIOrchestrator:
 
         # Fetch all data concurrently
         results = await asyncio.gather(
-            self.defillama.get_total_tvl(),
+            self.defillama.get_tvl_history(),  # Gets both current and historical TVL
             self.defillama.get_stablecoins(),
             self.defillama.get_protocols(),
             self.defillama.get_bridges(),
-            self.defillama.get_tvl_history(),
             self.fred.fetch_series('DGS10', start_date='2024-01-01'),
             self.fred.fetch_series('VIXCLS', start_date='2024-01-01'),
             self.fred.fetch_series('T10Y2Y', start_date='2024-01-01'),
@@ -109,11 +108,10 @@ class ASRIOrchestrator:
 
         # Unpack results
         (
-            total_tvl,
+            tvl_history,
             stablecoins,
             protocols,
             bridges,
-            tvl_history,
             dgs10_data,
             vix_data,
             spread_data,
@@ -172,17 +170,19 @@ class ASRIOrchestrator:
             crypto_equity_corr = 0.5  # Default if data unavailable
             logger.warning("Using default correlation (data unavailable)")
 
-        # Calculate max historical TVL
+        # Calculate max historical TVL and extract current TVL
         if not isinstance(tvl_history, Exception) and tvl_history:
             max_tvl = max(p.tvl for p in tvl_history)
+            total_tvl = tvl_history[-1].tvl if tvl_history else 100e9  # Latest TVL
             historical_tvls = [p.tvl for p in tvl_history[-30:]]  # Last 30 days
         else:
-            max_tvl = total_tvl if not isinstance(total_tvl, Exception) else 100e9
+            max_tvl = 100e9
+            total_tvl = 100e9
             historical_tvls = None
 
         logger.info(
             "Data fetch complete",
-            total_tvl=total_tvl if not isinstance(total_tvl, Exception) else "error",
+            total_tvl=total_tvl,
             num_stables=len(stablecoins) if not isinstance(stablecoins, Exception) else "error",
             num_protocols=len(protocols) if not isinstance(protocols, Exception) else "error",
             treasury_10y=treasury_10y,
@@ -197,7 +197,7 @@ class ASRIOrchestrator:
             reg_sentiment = news_sentiment
 
         return {
-            'total_tvl': total_tvl if not isinstance(total_tvl, Exception) else 100e9,
+            'total_tvl': total_tvl,
             'max_tvl': max_tvl,
             'stablecoins': stablecoins if not isinstance(stablecoins, Exception) else [],
             'protocols': protocols if not isinstance(protocols, Exception) else [],
@@ -296,7 +296,7 @@ class ASRIOrchestrator:
         )
 
         return {
-            'timestamp': datetime.utcnow(),
+            'timestamp': datetime.now(timezone.utc),
             'asri': result.asri,
             'asri_normalized': result.asri_normalized,
             'alert_level': result.alert_level,
@@ -344,7 +344,7 @@ class ASRIOrchestrator:
 
         async with async_session() as db:
             # Get last 30 days of data for average
-            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
             stmt = select(ASRIDaily).where(ASRIDaily.date >= thirty_days_ago).order_by(ASRIDaily.date)
             history = await db.execute(stmt)
             history_records = history.scalars().all()
@@ -363,7 +363,7 @@ class ASRIOrchestrator:
                         trend = "decreasing"
 
             # Check if we already have a record for today
-            today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
             stmt = select(ASRIDaily).where(ASRIDaily.date == today)
             existing = await db.execute(stmt)
             record = existing.scalar_one_or_none()
@@ -379,7 +379,7 @@ class ASRIOrchestrator:
                 record.defi_liquidity_risk = result['sub_indices']['defi_liquidity_risk']
                 record.contagion_risk = result['sub_indices']['contagion_risk']
                 record.arbitrage_opacity = result['sub_indices']['arbitrage_opacity']
-                record.updated_at = datetime.utcnow()
+                record.updated_at = datetime.now(timezone.utc)
                 logger.info("Updated existing ASRI record", date=today)
             else:
                 # Create new record
@@ -394,7 +394,7 @@ class ASRIOrchestrator:
                     defi_liquidity_risk=result['sub_indices']['defi_liquidity_risk'],
                     contagion_risk=result['sub_indices']['contagion_risk'],
                     arbitrage_opacity=result['sub_indices']['arbitrage_opacity'],
-                    created_at=datetime.utcnow(),
+                    created_at=datetime.now(timezone.utc),
                 )
                 db.add(record)
                 logger.info("Created new ASRI record", date=today)
