@@ -13,7 +13,7 @@
 
 The Aggregated Systemic Risk Index (ASRI) is a composite measure for **retrospective, interpretable monitoring** of systemic stress arising from DeFi-TradFi interconnection. It aggregates four sub-indices -- Stablecoin Concentration Risk, DeFi Liquidity Risk, Contagion Risk, and Regulatory Opacity Risk -- into a daily composite, decomposable back to its channels. It is **not** a validated real-time early-warning system.
 
-Against four major crypto crises (Terra/Luna, Celsius/3AC, FTX, SVB), an HAC-robust event study finds statistically significant abnormal stress for **three of four** events (Terra/Luna non-significant under serial-correlation-robust inference, t = 1.72, p = 0.086); fixed-threshold detection (ASRI >= 50) likewise identifies three of four, with Terra/Luna's pre-window peak (46.0) below the threshold. A Hidden Markov Model labels three regimes (Low/Moderate/Crisis) with >97% persistence, restating the index's own serial correlation rather than statistically distinct generating processes.
+Against four major crypto crises (Terra/Luna, Celsius/3AC, FTX, SVB), an HAC-robust event study is **inconclusive** and is not counted toward detection: the apparent "3/4 significant" reading holds only under the invalid asymptotic-normal reference, and on the valid fixed-b reference only SVB nominally clears the 5% threshold (1/4) -- which a placebo/specificity test shows is not crisis-specific (HAC t = 1.72/3.49/3.28/3.86 for Terra/Celsius/FTX/SVB). Fixed-threshold operational detection (ASRI >= 50) separately identifies **three of four**, with Terra/Luna's pre-window peak (46.0) below the threshold. A Hidden Markov Model labels three regimes (Low/Moderate/Crisis) with >97% persistence, restating the index's own serial correlation rather than statistically distinct generating processes.
 
 On a fair-baseline comparison (identical labels and protocol), ASRI's discrimination (AUROC **0.866**) is **not statistically distinguishable** from its single strongest sub-index (Contagion, 0.851) or from PC1 of its sub-indices (0.858) -- with only four crisis episodes, those gaps are within overlapping bootstrap intervals. ASRI's measured advantage is confined to the Diebold-Yilmaz connectedness benchmark (0.670), which is itself constructed from ASRI's sub-indices and is outperformed by an off-the-shelf Fear & Greed index (0.789). **The value of aggregation here is interpretive -- channel decomposition, a single auditable composite, regime structure -- not discriminative.** ASRI proxies DeFi-TradFi transmission via TradFi-stress indicators (Treasury/VIX/yield), rather than measuring a realised exposure directly. An open-source implementation with live dashboard is provided.
 
@@ -25,7 +25,7 @@ Paper links:
 
 | Finding | Result |
 |---------|--------|
-| Crisis detection (HAC-robust) | Significant abnormal stress for **3/4** crises (Celsius/3AC, FTX, SVB; t = 3.28--3.86, p < 0.01); Terra/Luna non-significant (t = 1.72, p = 0.086) |
+| Event study (HAC-robust) | **Inconclusive**, not counted toward detection: the "3/4 significant" reading holds only under the invalid asymptotic-normal reference; on the valid fixed-b reference only SVB nominally clears (1/4), and a placebo test shows it is not crisis-specific (HAC t = 1.72/3.49/3.28/3.86 for Terra/Celsius/FTX/SVB) |
 | Threshold detection | Fixed ASRI >= 50 identifies 3/4 at ~19-day first-crossing lead; Terra/Luna pre-window peak 46.0 < 50. Walk-forward (training-calibrated thresholds) recovers 4/4 out-of-sample, at a 47--59% false-alarm cost |
 | Regime structure | HMM labels 3 regimes (Low/Moderate/Crisis), persistence >97% (0.997 / 0.992 / 0.980) -- interpretive structure over an autocorrelated trend |
 | Fair-baseline discrimination | ASRI AUROC 0.866 **not distinguishable** from Contagion channel alone (0.851) or PC1 (0.858); aggregation adds ~+0.008 AUROC over the best single channel |
@@ -132,7 +132,7 @@ read the frozen parquet directly.
 # verify the frozen series first
 sha256sum results/data/asri_history.parquet   # f0fc1502…628a827d
 
-python scripts/event_study_hac.py            # HAC event study: t 1.72/3.49/3.28/3.86, 3/4 survive
+python scripts/event_study_hac.py            # HAC event study: t 1.72/3.49/3.28/3.86; inconclusive (fixed-b: only SVB clears, 1/4)
 python scripts/moving_block_bootstrap_roc.py # ASRI 0.866 vs Diebold-Yilmaz 0.670, block-bootstrap CIs
 python scripts/baseline_comparison.py        # AUROC ASRI 0.866 / Contagion 0.851 / PC1 0.858 / F&G 0.789
 python scripts/generate_detection_table.py   # peaks (FTX 84.7), τ=50 3/4, walk-forward OOS 4/4
